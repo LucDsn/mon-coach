@@ -14,7 +14,20 @@
   --border:rgba(93,202,165,.12);--border2:rgba(93,202,165,.28);
   --orange:#FC4C02;--blue:#378ADD;--amber:#EF9F27;--red:#E24B4A;--purple:#7F77DD;
   --r:14px;--r2:10px;--r3:8px;
+  --tick:#5f8f7e;--grid-line:rgba(255,255,255,.04);
 }
+body.light{
+  --dark:#f0f7f4;--mid:#e4f0eb;--panel:#ffffff;--panel2:#f4faf7;
+  --text:#0d2018;--muted:#5a7a6e;--muted2:#3d6557;
+  --border:rgba(15,110,86,.13);--border2:rgba(15,110,86,.3);
+  --tick:#5a7a6e;--grid-line:rgba(0,0,0,.05);
+}
+body.light .bg::before{background:radial-gradient(ellipse 60% 45% at 10% 0%,rgba(15,110,86,.08) 0%,transparent 55%),radial-gradient(ellipse 45% 35% at 90% 100%,rgba(29,158,117,.05) 0%,transparent 55%);}
+body.light .gbg{background-image:linear-gradient(rgba(15,110,86,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(15,110,86,.04) 1px,transparent 1px);}
+.chat-msg{padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.7;max-width:88%;}
+.chat-msg.bot{background:rgba(15,110,86,.1);border:1px solid rgba(29,158,117,.15);align-self:flex-start;}
+.chat-msg.user{background:var(--g2);color:white;align-self:flex-end;border-radius:12px 12px 4px 12px;}
+.chat-msg.typing{color:var(--muted);font-style:italic;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;overflow-x:hidden;font-size:14px;}
 .bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
@@ -402,34 +415,54 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 
 <!-- STATS -->
 <div class="scr" id="sstats">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;">
-    <div><div style="font-family:'DM Serif Display',serif;font-size:20px;">Statistiques</div><div style="font-size:12px;color:var(--muted);margin-top:3px;">Volume, progression et répartition par discipline</div></div>
-    <div class="stats-tabs">
-      <div class="stab on" onclick="stab('week',this)">Semaine</div>
-      <div class="stab" onclick="stab('month',this)">Mois</div>
+    <div><div style="font-family:'DM Serif Display',serif;font-size:20px;">Statistiques</div><div style="font-size:12px;color:var(--muted);margin-top:3px;" id="stats-period-lbl">—</div></div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <div class="stats-tabs">
+        <div class="stab on" onclick="stab('week',this)">Par semaine</div>
+        <div class="stab" onclick="stab('month',this)">Par mois</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="stab" onclick="statNav(-1)" style="padding:4px 10px;">←</button>
+        <button class="stab on" onclick="statNav(0)" id="stat-now-btn" style="padding:4px 10px;">Actuel</button>
+        <button class="stab" onclick="statNav(1)" id="stat-next-btn" style="padding:4px 10px;">→</button>
+      </div>
     </div>
   </div>
   <div class="summary-row" id="stats-summary"></div>
   <div class="chart-block">
-    <div class="cb-title">Volume hebdomadaire (km)</div>
-    <div class="disc-legend">
-      <div class="dl-item"><div class="dl-dot" style="background:var(--teal)"></div>Course</div>
-      <div class="dl-item"><div class="dl-dot" style="background:var(--blue)"></div>Vélo</div>
-      <div class="dl-item"><div class="dl-dot" style="background:var(--teal2)"></div>Natation</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.8rem;">
+      <div class="cb-title" style="margin-bottom:0;" id="vol-chart-title">Volume (km)</div>
+      <div class="disc-legend" style="margin-bottom:0;">
+        <div class="dl-item"><div class="dl-dot" style="background:var(--teal)"></div>Course (km)</div>
+        <div class="dl-item"><div class="dl-dot" style="background:var(--blue)"></div>Vélo (km)</div>
+        <div class="dl-item"><div class="dl-dot" style="background:var(--teal2)"></div>Natation (m×10)</div>
+      </div>
     </div>
     <div class="chart-c" style="height:220px;"><canvas id="ch-vol"></canvas></div>
   </div>
+  <div class="chart-block">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.8rem;">
+      <div class="cb-title" style="margin-bottom:0;">Temps d'entraînement (heures)</div>
+      <div class="disc-legend" style="margin-bottom:0;">
+        <div class="dl-item"><div class="dl-dot" style="background:var(--teal)"></div>Course</div>
+        <div class="dl-item"><div class="dl-dot" style="background:var(--blue)"></div>Vélo</div>
+        <div class="dl-item"><div class="dl-dot" style="background:var(--teal2)"></div>Natation</div>
+      </div>
+    </div>
+    <div class="chart-c" style="height:180px;"><canvas id="ch-time"></canvas></div>
+  </div>
   <div class="tc">
     <div class="chart-block">
-      <div class="cb-title">Répartition par discipline</div>
+      <div class="cb-title">Répartition du temps par discipline (%)</div>
       <div class="chart-c" style="height:200px;"><canvas id="ch-disc"></canvas></div>
     </div>
     <div class="chart-block">
-      <div class="cb-title">FC moyenne par semaine</div>
+      <div class="cb-title">FC moyenne par séance (bpm)</div>
       <div class="chart-c" style="height:200px;"><canvas id="ch-hr"></canvas></div>
     </div>
   </div>
   <div class="chart-block">
-    <div class="cb-title">Progression allure course (min/km)</div>
+    <div class="cb-title">Progression allure course (min:sec / km — axe inversé : bas = plus rapide)</div>
     <div class="chart-c" style="height:180px;"><canvas id="ch-pace"></canvas></div>
   </div>
 </div>
@@ -467,8 +500,28 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 
 
 <!-- NUTRITION -->
 <div class="scr" id="sn">
-  <div><div style="font-family:'DM Serif Display',serif;font-size:20px;">Nutrition & récupération</div><div style="font-size:12px;color:var(--muted);margin-top:3px;" id="nutri-load">Charge calculée selon ton volume actuel</div></div>
-  <div class="ng" id="nutri-grid"></div>
+  <div><div style="font-family:'DM Serif Display',serif;font-size:20px;">Nutrition & récupération</div><div style="font-size:12px;color:var(--muted);margin-top:3px;" id="nutri-load">Coach nutrition personnalisé</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="ng" id="nutri-grid" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;min-height:500px;">
+      <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;">
+        <div style="width:30px;height:30px;background:var(--g1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;">🥗</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--teal);">Coach Nutrition IA</div>
+          <div style="font-size:11px;color:var(--muted);">Connecté à tes données Strava</div>
+        </div>
+      </div>
+      <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:10px;">
+        <div class="chat-msg bot">Bonjour ! Je suis ton coach nutrition connecté à tes données d'entraînement. Pose-moi une question sur ton alimentation, ta récupération, ou demande-moi d'analyser ta semaine. Je me base sur tes vraies activités Strava pour te répondre.</div>
+      </div>
+      <div style="padding:.8rem;border-top:1px solid var(--border);display:flex;gap:8px;">
+        <input type="text" id="chat-input" placeholder="Ex: Que manger avant ma longue sortie vélo de demain ?" style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:9px;outline:none;" onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" id="chat-send" style="background:var(--g2);border:none;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:9px 16px;border-radius:9px;cursor:pointer;transition:opacity .15s;white-space:nowrap;">Envoyer</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- PROFILE -->
@@ -514,6 +567,16 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 
       <div class="prow"><div class="pl">Dernière sync</div><div style="font-size:12px;color:var(--muted);" id="p-sync">—</div></div>
       <div class="prow"><div class="pl">Activités chargées</div><div style="font-size:13px;" id="p-acts">—</div></div>
       <button class="danger-b" style="margin-top:.8rem;" onclick="logout()">Se déconnecter</button>
+    </div>
+    <div class="prof-panel">
+      <div class="prof-title">Apparence</div>
+      <div class="prow">
+        <div class="pl">Thème</div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="setTheme('dark')" id="theme-dark" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;transition:all .15s;">🌙 Sombre</button>
+          <button onclick="setTheme('light')" id="theme-light" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;transition:all .15s;">☀️ Clair</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -595,10 +658,15 @@ function gt(id){
 function stab(mode,el){
   document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
   el.classList.add('on');
-  renderStats(mode);
+  statMode=mode; statOffset=0;
+  renderStats();
+}
+function statNav(dir){
+  if(dir===0){statOffset=0;}else{statOffset+=dir;}
+  document.getElementById('stat-next-btn').classList.toggle('on',statOffset===0);
+  renderStats();
 }
 
-function cS(){
   window.location.href=`https://www.strava.com/oauth/authorize?client_id=${CID}&redirect_uri=${encodeURIComponent(RD)}&response_type=code&scope=read,activity:read_all`;
 }
 async function exchTok(code){
@@ -779,56 +847,94 @@ function renderDash(){
 }
 
 // STATS
-function renderStats(mode='week'){
+let statMode='week', statOffset=0;
+function renderStats(){
   const acts=S.acts;
   if(!acts.length)return;
-  // group by week or month
+  const isLight=document.body.classList.contains('light');
+  const tickC=isLight?'#5a7a6e':'#5f8f7e';
+  const gridC=isLight?'rgba(0,0,0,.06)':'rgba(255,255,255,.04)';
+  const now=new Date();
+  let periodStart, periodEnd, periodLabel;
+  if(statMode==='week'){
+    const ref=new Date(now);
+    ref.setDate(now.getDate()-now.getDay()+1+(statOffset*7));
+    periodStart=new Date(ref); periodStart.setHours(0,0,0,0);
+    periodEnd=new Date(ref); periodEnd.setDate(ref.getDate()+6); periodEnd.setHours(23,59,59,999);
+    periodLabel=statOffset===0?`Semaine en cours (${periodStart.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} – ${periodEnd.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})})`:
+      `Semaine du ${periodStart.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} au ${periodEnd.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`;
+  } else {
+    const ref=new Date(now.getFullYear(),now.getMonth()+statOffset,1);
+    periodStart=new Date(ref); periodStart.setHours(0,0,0,0);
+    periodEnd=new Date(ref.getFullYear(),ref.getMonth()+1,0); periodEnd.setHours(23,59,59,999);
+    periodLabel=statOffset===0?`Mois en cours (${ref.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})})`:
+      ref.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  }
+  document.getElementById('stats-period-lbl').textContent=periodLabel;
+  const pActs=acts.filter(a=>{const d=new Date(a.start_date);return d>=periodStart&&d<=periodEnd;});
+  const rangeActs=statMode==='week'
+    ? acts.filter(a=>{const d=new Date(a.start_date);const wk=new Date(now);wk.setDate(now.getDate()-now.getDay()+1+statOffset*7-77);return d>=wk;})
+    : acts.filter(a=>{const d=new Date(a.start_date);const mo=new Date(now.getFullYear(),now.getMonth()+statOffset-5,1);return d>=mo;});
   const groups={};
-  acts.forEach(a=>{
-    const d=new Date(a.start_date);
-    let key;
-    if(mode==='week'){const wd=new Date(d);wd.setDate(d.getDate()-d.getDay());key=wd.toISOString().slice(0,10);}
+  rangeActs.forEach(a=>{
+    const d=new Date(a.start_date); let key;
+    if(statMode==='week'){const wd=new Date(d);wd.setDate(d.getDate()-d.getDay()+1);key=wd.toISOString().slice(0,10);}
     else{key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
-    if(!groups[key])groups[key]={run:0,ride:0,swim:0,time:0,hrsum:0,hrcnt:0,runPaces:[]};
+    if(!groups[key])groups[key]={run:0,ride:0,swim:0,runT:0,rideT:0,swimT:0,hrsum:0,hrcnt:0,runPaces:[]};
     const g=groups[key];
-    if(a.type==='Run'||a.type==='TrailRun'){g.run+=a.distance||0;if(a.moving_time&&a.distance)g.runPaces.push(a.moving_time/(a.distance/1000));}
-    else if(a.type?.includes('Ride'))g.ride+=a.distance||0;
-    else if(a.type==='Swim')g.swim+=a.distance||0;
-    g.time+=a.moving_time||0;
+    if(a.type==='Run'||a.type==='TrailRun'){g.run+=a.distance||0;g.runT+=a.moving_time||0;if(a.moving_time&&a.distance)g.runPaces.push(a.moving_time/(a.distance/1000));}
+    else if(a.type?.includes('Ride')){g.ride+=a.distance||0;g.rideT+=a.moving_time||0;}
+    else if(a.type==='Swim'){g.swim+=a.distance||0;g.swimT+=a.moving_time||0;}
     if(a.average_heartrate){g.hrsum+=a.average_heartrate;g.hrcnt++;}
   });
   const keys=Object.keys(groups).sort();
-  const labels=keys.map(k=>mode==='week'?`Sem ${new Date(k).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`:new Date(k+'-01').toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}));
-  const runData=keys.map(k=>Math.round(groups[k].run/100)/10);
-  const rideData=keys.map(k=>Math.round(groups[k].ride/100)/10);
-  const swimData=keys.map(k=>Math.round(groups[k].swim/10)/10);
-  const hrData=keys.map(k=>groups[k].hrcnt?Math.round(groups[k].hrsum/groups[k].hrcnt):null);
-  const paceData=keys.map(k=>groups[k].runPaces.length?Math.round(groups[k].runPaces.reduce((s,v)=>s+v,0)/groups[k].runPaces.length):null);
-  // summary
-  const totRun=S.acts.filter(a=>a.type==='Run'||a.type==='TrailRun').reduce((s,a)=>s+(a.distance||0),0);
-  const totRide=S.acts.filter(a=>a.type?.includes('Ride')).reduce((s,a)=>s+(a.distance||0),0);
-  const totSwim=S.acts.filter(a=>a.type==='Swim').reduce((s,a)=>s+(a.distance||0),0);
+  const labels=keys.map(k=>statMode==='week'?new Date(k).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):new Date(k+'-01').toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}));
+  const pRun=pActs.filter(a=>a.type==='Run'||a.type==='TrailRun').reduce((s,a)=>s+(a.distance||0),0);
+  const pRide=pActs.filter(a=>a.type?.includes('Ride')).reduce((s,a)=>s+(a.distance||0),0);
+  const pSwim=pActs.filter(a=>a.type==='Swim').reduce((s,a)=>s+(a.distance||0),0);
+  const pTime=pActs.reduce((s,a)=>s+(a.moving_time||0),0);
+  const pTSS=pActs.reduce((s,a)=>s+(calcTSS(a)||0),0);
   document.getElementById('stats-summary').innerHTML=`
-    <div class="sum-c"><div class="sum-l">Total course</div><div class="sum-v">${fD(totRun)}<small>km</small></div></div>
-    <div class="sum-c"><div class="sum-l">Total vélo</div><div class="sum-v">${fD(totRide)}<small>km</small></div></div>
-    <div class="sum-c"><div class="sum-l">Total natation</div><div class="sum-v">${fD(totSwim)}<small>km</small></div></div>`;
-  const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5f8f7e',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#5f8f7e',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}};
+    <div class="sum-c"><div class="sum-l">Course</div><div class="sum-v">${fD(pRun)}<small>km</small></div><div style="font-size:10px;color:var(--muted);margin-top:2px;">${pActs.filter(a=>a.type==='Run'||a.type==='TrailRun').length} séances</div></div>
+    <div class="sum-c"><div class="sum-l">Vélo</div><div class="sum-v">${fD(pRide)}<small>km</small></div><div style="font-size:10px;color:var(--muted);margin-top:2px;">${pActs.filter(a=>a.type?.includes('Ride')).length} séances</div></div>
+    <div class="sum-c"><div class="sum-l">Natation</div><div class="sum-v">${fD(pSwim)}<small>km</small></div><div style="font-size:10px;color:var(--muted);margin-top:2px;">${pActs.filter(a=>a.type==='Swim').length} séances</div></div>
+    <div class="sum-c"><div class="sum-l">Temps total</div><div class="sum-v">${(pTime/3600).toFixed(1)}<small>h</small></div><div style="font-size:10px;color:var(--muted);margin-top:2px;">${pActs.length} activités</div></div>
+    <div class="sum-c"><div class="sum-l">TSS estimé</div><div class="sum-v" style="color:${tssColor(pTSS/Math.max(pActs.length,1))}">${pTSS}</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">charge totale</div></div>
+    <div class="sum-c"><div class="sum-l">Calories</div><div class="sum-v">${pActs.reduce((s,a)=>s+(a.calories||0),0).toLocaleString('fr-FR')}<small>kcal</small></div><div style="font-size:10px;color:var(--muted);margin-top:2px;">brûlées</div></div>`;
+  const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tickC,font:{size:10}},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:10}},grid:{color:gridC}}}};
+  document.getElementById('vol-chart-title').textContent=`Volume distance (km) — Natation en m÷100 pour lisibilité`;
   destroyChart('vol');
-  chartRefs['vol']=new Chart(document.getElementById('ch-vol').getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'Course',data:runData,backgroundColor:'rgba(93,202,165,.7)',borderRadius:3},{label:'Vélo',data:rideData,backgroundColor:'rgba(55,138,221,.7)',borderRadius:3},{label:'Natation',data:swimData,backgroundColor:'rgba(159,225,203,.5)',borderRadius:3}]},options:{...co,scales:{...co.scales,x:{...co.scales.x,stacked:true},y:{...co.scales.y,stacked:true}}}});
-  // disc pie
+  chartRefs['vol']=new Chart(document.getElementById('ch-vol').getContext('2d'),{type:'bar',data:{labels,datasets:[
+    {label:'Course (km)',data:keys.map(k=>parseFloat((groups[k].run/1000).toFixed(1))),backgroundColor:'rgba(93,202,165,.75)',borderRadius:3},
+    {label:'Vélo (km)',data:keys.map(k=>parseFloat((groups[k].ride/1000).toFixed(1))),backgroundColor:'rgba(55,138,221,.75)',borderRadius:3},
+    {label:'Natation (m÷100)',data:keys.map(k=>parseFloat((groups[k].swim/100).toFixed(1))),backgroundColor:'rgba(159,225,203,.55)',borderRadius:3},
+  ]},options:{...co,plugins:{...co.plugins,tooltip:{callbacks:{label:ctx=>{if(ctx.dataset.label.includes('Natation'))return`Natation: ${(ctx.raw*100).toFixed(0)} m`;return`${ctx.dataset.label.split(' ')[0]}: ${ctx.raw} km`;}}}},scales:{...co.scales,x:{...co.scales.x,stacked:true},y:{...co.scales.y,stacked:true,title:{display:true,text:'km',color:tickC,font:{size:10}}}}}});
+  destroyChart('time');
+  chartRefs['time']=new Chart(document.getElementById('ch-time').getContext('2d'),{type:'bar',data:{labels,datasets:[
+    {label:'Course',data:keys.map(k=>parseFloat((groups[k].runT/3600).toFixed(2))),backgroundColor:'rgba(93,202,165,.75)',borderRadius:3},
+    {label:'Vélo',data:keys.map(k=>parseFloat((groups[k].rideT/3600).toFixed(2))),backgroundColor:'rgba(55,138,221,.75)',borderRadius:3},
+    {label:'Natation',data:keys.map(k=>parseFloat((groups[k].swimT/3600).toFixed(2))),backgroundColor:'rgba(159,225,203,.55)',borderRadius:3},
+  ]},options:{...co,plugins:{...co.plugins,tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw} h`}}},scales:{...co.scales,x:{...co.scales.x,stacked:true},y:{...co.scales.y,stacked:true,title:{display:true,text:'heures',color:tickC,font:{size:10}}}}}});
   destroyChart('disc');
-  const totT=S.acts.reduce((s,a)=>s+(a.moving_time||0),0);
-  const rT=S.acts.filter(a=>a.type==='Run'||a.type==='TrailRun').reduce((s,a)=>s+(a.moving_time||0),0);
-  const biT=S.acts.filter(a=>a.type?.includes('Ride')).reduce((s,a)=>s+(a.moving_time||0),0);
-  const swT=S.acts.filter(a=>a.type==='Swim').reduce((s,a)=>s+(a.moving_time||0),0);
-  chartRefs['disc']=new Chart(document.getElementById('ch-disc').getContext('2d'),{type:'doughnut',data:{labels:['Course','Vélo','Natation'],datasets:[{data:[Math.round(rT/totT*100),Math.round(biT/totT*100),Math.round(swT/totT*100)],backgroundColor:['rgba(93,202,165,.8)','rgba(55,138,221,.8)','rgba(159,225,203,.6)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#8db5a6',font:{size:11},boxWidth:10}}}}});
-  // hr
+  const pRT=pActs.filter(a=>a.type==='Run'||a.type==='TrailRun').reduce((s,a)=>s+(a.moving_time||0),0);
+  const pBT=pActs.filter(a=>a.type?.includes('Ride')).reduce((s,a)=>s+(a.moving_time||0),0);
+  const pST=pActs.filter(a=>a.type==='Swim').reduce((s,a)=>s+(a.moving_time||0),0);
+  const totPT=pRT+pBT+pST||1;
+  const rPct=Math.round(pRT/totPT*100),bPct=Math.round(pBT/totPT*100),sPct=Math.round(pST/totPT*100);
+  chartRefs['disc']=new Chart(document.getElementById('ch-disc').getContext('2d'),{type:'doughnut',
+    data:{labels:[`Course ${rPct}%`,`Vélo ${bPct}%`,`Natation ${sPct}%`],datasets:[{data:[rPct,bPct,sPct],backgroundColor:['rgba(93,202,165,.85)','rgba(55,138,221,.85)','rgba(159,225,203,.7)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:tickC,font:{size:11},boxWidth:10}}}}});
+  const hrData=keys.map(k=>groups[k].hrcnt?Math.round(groups[k].hrsum/groups[k].hrcnt):null);
   destroyChart('hr');
-  chartRefs['hr']=new Chart(document.getElementById('ch-hr').getContext('2d'),{type:'line',data:{labels,datasets:[{data:hrData,borderColor:'#E24B4A',borderWidth:2,fill:true,backgroundColor:'rgba(226,75,74,.08)',tension:0.4,pointRadius:3,pointBackgroundColor:'#E24B4A',spanGaps:true}]},options:{...co}});
-  // pace
+  chartRefs['hr']=new Chart(document.getElementById('ch-hr').getContext('2d'),{type:'line',
+    data:{labels,datasets:[{label:'FC moy (bpm)',data:hrData,borderColor:'#E24B4A',borderWidth:2,fill:true,backgroundColor:'rgba(226,75,74,.08)',tension:0.4,pointRadius:3,pointBackgroundColor:'#E24B4A',spanGaps:true}]},
+    options:{...co,plugins:{...co.plugins,tooltip:{callbacks:{label:ctx=>`FC moy: ${ctx.raw} bpm`}}},scales:{...co.scales,y:{...co.scales.y,title:{display:true,text:'bpm',color:tickC,font:{size:10}}}}}});
+  const paceRaw=keys.map(k=>groups[k].runPaces.length?groups[k].runPaces.reduce((s,v)=>s+v,0)/groups[k].runPaces.length:null);
   destroyChart('pace');
-  const paceFormatted=paceData.map(p=>p?parseFloat((p/60).toFixed(2)):null);
-  chartRefs['pace']=new Chart(document.getElementById('ch-pace').getContext('2d'),{type:'line',data:{labels,datasets:[{data:paceFormatted,borderColor:'var(--teal)',borderWidth:2,fill:false,tension:0.4,pointRadius:3,pointBackgroundColor:'#5DCAA5',spanGaps:true}]},options:{...co,scales:{...co.scales,y:{...co.scales.y,reverse:true,ticks:{...co.scales.y.ticks,callback:v=>{const m=Math.floor(v),s=Math.round((v-m)*60);return`${m}:${String(s).padStart(2,'0')}`}}}}}});
+  chartRefs['pace']=new Chart(document.getElementById('ch-pace').getContext('2d'),{type:'line',
+    data:{labels,datasets:[{label:'Allure course',data:paceRaw.map(p=>p?parseFloat((p/60).toFixed(3)):null),borderColor:'#5DCAA5',borderWidth:2,fill:false,tension:0.4,pointRadius:3,pointBackgroundColor:'#5DCAA5',spanGaps:true}]},
+    options:{...co,plugins:{...co.plugins,tooltip:{callbacks:{label:ctx=>{if(!ctx.raw)return'—';const t=ctx.raw*60,m=Math.floor(t/60),s=Math.round(t%60);return`Allure: ${m}:${String(s).padStart(2,'0')} /km`;}}}},
+    scales:{...co.scales,y:{...co.scales.y,reverse:true,title:{display:true,text:'min:sec/km',color:tickC,font:{size:10}},ticks:{...co.scales.y.ticks,callback:v=>{const t=v*60,m=Math.floor(t/60),s=Math.round(t%60);return`${m}:${String(s).padStart(2,'0')}`}}}}}});
 }
 
 // ACTIVITIES
@@ -928,12 +1034,72 @@ function openAct(id){
   const pc=document.getElementById('ch-mo-pace').getContext('2d');
   moPace=new Chart(pc,{type:'line',data:{labels:lbs,datasets:[{data:paceData,borderColor:sCol(a.type),borderWidth:1.5,fill:false,tension:0.4,pointRadius:0}]},options:co2});
   // analysis
-  let analysis=`Séance de ${fD(a.distance)} km en ${fT(a.moving_time)} (${paceStr(a)}). `;
-  if(z){analysis+=`FC moyenne ${Math.round(a.average_heartrate)} bpm (${z.n} — ${z.lbl}, ${Math.round(a.average_heartrate/hm*100)}% FCmax). `;}
-  if(tss){analysis+=`Charge estimée : TSS ~${tss} (${tss<50?'légère, récupération rapide':tss<100?'modérée, récupération 24h':tss<150?'élevée, prévoir 48h':'très élevée, récupération 72h+'}). `;}
-  if(a.total_elevation_gain>100)analysis+=`Dénivelé significatif (${Math.round(a.total_elevation_gain)}m) — facteur de charge supplémentaire. `;
-  if(a.average_cadence&&a.type==='Run'){const cad=Math.round(a.average_cadence*2);analysis+=`Cadence de ${cad} spm (${cad>=175?'excellente':'idéal viser 175-185 spm pour réduire les impacts'}). `;}
-  if(!a.average_heartrate)analysis+='⚠️ Pas de données FC — ton Polar Verity Sense va changer ça dès que tu l\'auras !';
+  // --- ANALYSE TECHNIQUE DÉTAILLÉE ---
+  const similar4avg=similar.filter(s=>s.average_heartrate);
+  const avgSimilarHR=similar4avg.length?Math.round(similar4avg.reduce((s,x)=>s+x.average_heartrate,0)/similar4avg.length):null;
+  const avgSimilarPace=similar.filter(s=>s.distance&&s.moving_time).map(s=>s.moving_time/(s.distance/1000));
+  const avgSimPace=avgSimilarPace.length?avgSimilarPace.reduce((s,v)=>s+v,0)/avgSimilarPace.length:null;
+  const curPace=a.distance&&a.moving_time?a.moving_time/(a.distance/1000):null;
+  const hm=hrmax();
+
+  let analysis='';
+
+  // 1. Résumé objectif
+  analysis+=`📊 Résumé : ${sfr(a.type)} de ${fD(a.distance)} km en ${fT(a.moving_time)} (${paceStr(a)})`;
+  if(a.total_elevation_gain)analysis+=` avec ${Math.round(a.total_elevation_gain)}m de dénivelé`;
+  analysis+='. ';
+
+  // 2. Analyse de l'intensité
+  if(z){
+    const pctMax=Math.round(a.average_heartrate/hm*100);
+    analysis+=`\n\n💓 Intensité : FC moyenne de ${Math.round(a.average_heartrate)} bpm (${pctMax}% FCmax) → zone ${z.n} ${z.lbl}. `;
+    if(z.n==='Z1')analysis+='Séance de récupération active, parfaite après un effort intense. L\'organisme reconstitue ses réserves et élimine les déchets métaboliques.';
+    else if(z.n==='Z2')analysis+='Séance d\'endurance fondamentale idéale. Tu développes ta capacité aérobie et l\'efficacité des mitochondries. C\'est le moteur du triathlon.';
+    else if(z.n==='Z3')analysis+='Intensité tempo soutenue. Travail du seuil aérobie, développe ton économie de course. À doser : 1-2 séances max par semaine.';
+    else if(z.n==='Z4')analysis+='Travail au seuil lactique, très efficace pour progresser mais coûteux en récupération. Planifie 48h de repos actif avant la prochaine séance intense.';
+    else analysis+='Effort maximal en zone VO2max. Séance de qualité élevée — prévoir 72h avant un nouvel effort intense et soigner la nutrition de récupération.';
+    if(a.max_heartrate)analysis+=` Pic FC à ${Math.round(a.max_heartrate)} bpm (${Math.round(a.max_heartrate/hm*100)}% FCmax).`;
+  } else {
+    analysis+='\n\n⚠️ Pas de données FC — connecte ton Polar Verity Sense pour une analyse d\'intensité précise.';
+  }
+
+  // 3. Analyse de la performance / allure
+  if(a.type?.includes('Ride')){
+    const spd=((a.distance/a.moving_time)*3.6);
+    analysis+=`\n\n🚴 Performance vélo : vitesse moyenne ${spd.toFixed(1)} km/h. `;
+    if(spd<28)analysis+='Allure endurance, cohérente pour une sortie Z2. Pour le Half Ironman (90km), viser 30-35 km/h selon le profil.';
+    else if(spd<33)analysis+='Bonne vitesse, dans la fourchette cible pour un Half Ironman. Continue à développer la puissance aérobie.';
+    else analysis+='Excellente vitesse ! Assure-toi que cette intensité est soutenable sur 90km en course.';
+    if(avgSimPace){const avgSpd=3600/avgSimPace*1;analysis+=` Vs séances similaires : ${((spd-(avgSpd||spd))).toFixed(1)} km/h de différence.`;}
+  } else if(a.type==='Run'||a.type==='TrailRun'){
+    if(curPace){
+      const pMin=Math.floor(curPace/60),pSec=Math.round(curPace%60);
+      analysis+=`\n\n🏃 Performance course : allure ${pMin}:${String(pSec).padStart(2,'0')} /km. `;
+      if(a.average_cadence){const cad=Math.round(a.average_cadence*2);analysis+=`Cadence ${cad} spm (${cad>=180?'excellente, économique':'idéal viser 175-185 spm pour réduire les chocs et améliorer l\'économie de course'}). `;}
+      if(avgSimPace){const diff=curPace-avgSimPace;analysis+=`${Math.abs(diff)<10?'Allure similaire à tes sorties habituelles.':diff<0?`${Math.round(Math.abs(diff))}s/km plus rapide que tes séances similaires.`:`${Math.round(diff)}s/km plus lent que ta moyenne — normal si sortie longue ou dénivelé.`}`;}
+    }
+  } else if(a.type==='Swim'){
+    if(curPace)analysis+=`\n\n🏊 Performance natation : ${paceStr(a)}. Pour le Half (1900m), viser maintenir cette allure sur la totalité de la distance.`;
+  }
+
+  // 4. Charge et récupération
+  if(tss){
+    analysis+=`\n\n🔋 Charge (TSS ~${tss}) : `;
+    if(tss<50)analysis+='Effort léger. Récupération complète en moins de 24h. Tu peux enchaîner une autre séance dès demain.';
+    else if(tss<100)analysis+='Effort modéré. Prévois 24-36h avant un effort similaire. Bonne nutrition de récupération recommandée.';
+    else if(tss<150)analysis+='Effort élevé. 48h de récupération active nécessaires. Priorité aux protéines et glucides dans les 30min post-effort.';
+    else analysis+='Effort très élevé. 72h avant un nouvel effort intense. Sommeil de qualité et nutrition soignée sont critiques.';
+  }
+
+  // 5. Axes de travail
+  const axes=[];
+  if(a.average_cadence&&a.type==='Run'&&Math.round(a.average_cadence*2)<175)axes.push('améliorer la cadence de foulée (cible 175-185 spm)');
+  if(z&&z.n==='Z5')axes.push('limiter les séances Z5 à 1/semaine maximum');
+  if(z&&z.n==='Z2'&&a.moving_time<3600&&(a.type==='Run'||a.type?.includes('Ride')))axes.push('allonger progressivement les sorties longues Z2');
+  if(!a.average_heartrate)axes.push('utiliser un capteur FC (Polar Verity Sense) pour des analyses précises');
+  if(a.type==='Swim'&&a.distance<1500)axes.push('augmenter progressivement le volume de natation vers les 2km/séance');
+  if(axes.length)analysis+=`\n\n🎯 Axes de travail : ${axes.join(' · ')}.`;
+
   document.getElementById('mo-analysis').textContent=analysis;
   // similar
   const sims=document.getElementById('mo-similar');
@@ -1043,13 +1209,111 @@ function openSess(disc,idx){
 }
 
 // NUTRITION
+// CHAT
+let chatHistory=[];
+async function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  addChatMsg(msg,'user');
+  const sendBtn=document.getElementById('chat-send');
+  sendBtn.disabled=true; sendBtn.textContent='...';
+  addChatMsg('En train d\'analyser tes données...','bot typing','typing-bubble');
+
+  // Build context from real Strava data
+  const acts=S.acts;
+  const w=S.prof?.weight||75;
+  const hm=S.prof?.hrmax||185;
+  const weekH=S.prof?.weeklyH||10;
+  const goal=S.prof?.s1||'finisher';
+  const raceDate=S.prof?.raceDate;
+  const days=raceDate?Math.ceil((new Date(raceDate)-new Date())/864e5):null;
+  const runKm=acts.filter(a=>a.type==='Run'||a.type==='TrailRun').reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const rideKm=acts.filter(a=>a.type?.includes('Ride')).reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const swimM=acts.filter(a=>a.type==='Swim').reduce((s,a)=>s+(a.distance||0),0);
+  const totalH=acts.reduce((s,a)=>s+(a.moving_time||0),0)/3600;
+  const hrs=acts.filter(a=>a.average_heartrate).map(a=>a.average_heartrate);
+  const avgHR=hrs.length?Math.round(hrs.reduce((s,v)=>s+v,0)/hrs.length):0;
+  const last3=acts.slice(0,3).map(a=>`${sfr(a.type)} ${fD(a.distance)}km ${fT(a.moving_time)}${a.average_heartrate?' FC'+Math.round(a.average_heartrate)+'bpm':''}`).join(', ');
+
+  const systemPrompt=`Tu es un coach nutrition et récupération expert en triathlon, spécialisé Half Ironman 70.3. Tu réponds en français, de manière concrète, précise et personnalisée. Tu n'inventes pas de données — tu bases tes conseils uniquement sur ce que tu sais de l'athlète.
+
+Profil de l'athlète :
+- Poids : ${w} kg
+- FC max : ${hm} bpm
+- FC moyenne récente : ${avgHR||'non disponible'} bpm
+- Objectif : Half Ironman ${goal==='finisher'?'(finisher)':goal==='sub530'?'(-5h30)':goal==='sub500'?'(-5h00)':'(-4h30)'}
+- ${days?`Jours avant la course : ${days}`:'Date de course non définie'}
+- Volume actuel : ~${weekH}h/semaine
+- Course 6 mois : ${runKm.toFixed(0)} km (${acts.filter(a=>a.type==='Run'||a.type==='TrailRun').length} séances)
+- Vélo 6 mois : ${rideKm.toFixed(0)} km (${acts.filter(a=>a.type?.includes('Ride')).length} séances)
+- Natation 6 mois : ${(swimM/1000).toFixed(1)} km (${acts.filter(a=>a.type==='Swim').length} séances)
+- Total entraînement 6 mois : ${totalH.toFixed(0)}h
+- 3 dernières activités : ${last3||'aucune'}
+- Points forts : ${S.prof?.strengths||'non renseigné'}
+- Points à améliorer : ${S.prof?.weaknesses||'non renseigné'}
+
+Réponds en maximum 4-5 phrases concrètes. Pas de listes à puces, du texte fluide. Bases-toi sur les données réelles ci-dessus.`;
+
+  chatHistory.push({role:'user',content:msg});
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:systemPrompt,
+        messages:chatHistory
+      })
+    });
+    const data=await resp.json();
+    const reply=data.content?.[0]?.text||'Désolé, je n\'ai pas pu générer de réponse.';
+    chatHistory.push({role:'assistant',content:reply});
+    const typing=document.getElementById('typing-bubble');
+    if(typing)typing.remove();
+    addChatMsg(reply,'bot');
+  }catch(e){
+    const typing=document.getElementById('typing-bubble');
+    if(typing)typing.remove();
+    addChatMsg('Erreur de connexion à l\'API. Vérifie ta connexion internet.','bot');
+  }
+  sendBtn.disabled=false; sendBtn.textContent='Envoyer';
+  // scroll to bottom
+  const msgs=document.getElementById('chat-msgs');
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addChatMsg(text,cls,id=''){
+  const msgs=document.getElementById('chat-msgs');
+  const d=document.createElement('div');
+  d.className='chat-msg '+cls;
+  if(id)d.id=id;
+  d.textContent=text;
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+// THEME
+function setTheme(t){
+  document.body.classList.toggle('light',t==='light');
+  localStorage.setItem('mc3_theme',t);
+  // update active button
+  document.getElementById('theme-dark')?.style && (document.getElementById('theme-dark').style.borderColor=t==='dark'?'var(--teal)':'');
+  document.getElementById('theme-light')?.style && (document.getElementById('theme-light').style.borderColor=t==='light'?'var(--teal)':'');
+  // re-render stats if visible
+  if(document.getElementById('sstats').classList.contains('on'))renderStats();
+}
+
 function renderNutri(){
   const acts=S.acts;
   const w=S.prof?.weight||75;
   const weekH=S.prof?.weeklyH||10;
   const load=weekH>=12?'élevée':weekH>=8?'modérée':'faible';
   const kcal=Math.round(w*24+weekH*550);
-  document.getElementById('nutri-load').textContent=`Charge ${load} (~${weekH}h/sem) · Besoins estimés : ${kcal} kcal/jour`;
+  document.getElementById('nutri-load').textContent=`Charge ${load} (~${weekH}h/sem) · Besoins estimés : ${kcal} kcal/jour · Chatbot connecté à tes données Strava`;
   const carbs=Math.round(kcal*.55/4),prot=Math.round(kcal*.20/4),fat=Math.round(kcal*.25/9);
   document.getElementById('nutri-grid').innerHTML=`
     <div class="nc"><div class="ni">⚡</div><div class="nt2">Besoins caloriques</div><div class="nb">Basé sur ${w}kg et ${weekH}h/sem.<br><br><strong>~${kcal} kcal/jour</strong><br><br>
@@ -1104,6 +1368,9 @@ function logout(){localStorage.clear();location.reload();}
 // INIT
 async function init(){
   ld();setupOb();
+  // apply saved theme
+  const savedTheme=localStorage.getItem('mc3_theme')||'dark';
+  setTheme(savedTheme);
   const params=new URLSearchParams(window.location.search);
   const code=params.get('code');
   if(code){
