@@ -667,6 +667,7 @@ function statNav(dir){
   renderStats();
 }
 
+function cS(){
   window.location.href=`https://www.strava.com/oauth/authorize?client_id=${CID}&redirect_uri=${encodeURIComponent(RD)}&response_type=code&scope=read,activity:read_all`;
 }
 async function exchTok(code){
