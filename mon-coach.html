@@ -607,8 +607,17 @@ async function exchTok(code){
 }
 async function getActs(tok){
   const since=Math.floor((Date.now()-180*24*3600*1000)/1000);
-  const r=await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${since}&per_page=100`,{headers:{Authorization:`Bearer ${tok}`}});
-  return r.json();
+  let all=[],page=1;
+  while(true){
+    document.getElementById('lmsg').textContent=`Chargement des activités... (page ${page})`;
+    const r=await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${since}&per_page=100&page=${page}`,{headers:{Authorization:`Bearer ${tok}`}});
+    const data=await r.json();
+    if(!Array.isArray(data)||data.length===0)break;
+    all=all.concat(data);
+    if(data.length<100)break;
+    page++;
+  }
+  return all;
 }
 
 async function syncS(){
