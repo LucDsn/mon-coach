@@ -1041,7 +1041,6 @@ function openAct(id){
   const avgSimilarPace=similar.filter(s=>s.distance&&s.moving_time).map(s=>s.moving_time/(s.distance/1000));
   const avgSimPace=avgSimilarPace.length?avgSimilarPace.reduce((s,v)=>s+v,0)/avgSimilarPace.length:null;
   const curPace=a.distance&&a.moving_time?a.moving_time/(a.distance/1000):null;
-  const hm=hrmax();
 
   let analysis='';
 
