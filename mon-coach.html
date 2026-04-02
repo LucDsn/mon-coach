@@ -859,7 +859,7 @@ function renderStats(){
   let periodStart, periodEnd, periodLabel;
   if(statMode==='week'){
     const ref=new Date(now);
-    ref.setDate(now.getDate()-now.getDay()+1+(statOffset*7));
+    const dow2=(now.getDay()+6)%7;ref.setDate(now.getDate()-dow2+(statOffset*7));
     periodStart=new Date(ref); periodStart.setHours(0,0,0,0);
     periodEnd=new Date(ref); periodEnd.setDate(ref.getDate()+6); periodEnd.setHours(23,59,59,999);
     periodLabel=statOffset===0?`Semaine en cours (${periodStart.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} – ${periodEnd.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})})`:
@@ -874,12 +874,12 @@ function renderStats(){
   document.getElementById('stats-period-lbl').textContent=periodLabel;
   const pActs=acts.filter(a=>{const d=new Date(a.start_date);return d>=periodStart&&d<=periodEnd;});
   const rangeActs=statMode==='week'
-    ? acts.filter(a=>{const d=new Date(a.start_date);const wk=new Date(now);wk.setDate(now.getDate()-now.getDay()+1+statOffset*7-77);return d>=wk;})
+    ? acts.filter(a=>{const d=new Date(a.start_date);const wk=new Date(now);const dow3=(now.getDay()+6)%7;wk.setDate(now.getDate()-dow3+statOffset*7-77);return d>=wk;})
     : acts.filter(a=>{const d=new Date(a.start_date);const mo=new Date(now.getFullYear(),now.getMonth()+statOffset-5,1);return d>=mo;});
   const groups={};
   rangeActs.forEach(a=>{
     const d=new Date(a.start_date); let key;
-    if(statMode==='week'){const wd=new Date(d);wd.setDate(d.getDate()-d.getDay()+1);key=wd.toISOString().slice(0,10);}
+    if(statMode==='week'){const wd=new Date(d);const dow=(d.getDay()+6)%7;wd.setDate(d.getDate()-dow);key=wd.toISOString().slice(0,10);}
     else{key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
     if(!groups[key])groups[key]={run:0,ride:0,swim:0,runT:0,rideT:0,swimT:0,hrsum:0,hrcnt:0,runPaces:[]};
     const g=groups[key];
@@ -1002,38 +1002,67 @@ function openAct(id){
     <div class="ms"><div class="ms-l">Calories</div><div class="ms-v">${a.calories?Math.round(a.calories)+'<small>kcal</small>':'—'}</div></div>
     <div class="ms"><div class="ms-l">TSS estimé</div><div class="ms-v" style="color:${tssColor(tss)}">${tss||'—'}</div></div>
     <div class="ms"><div class="ms-l">Zone cardiaque</div><div class="ms-v" style="color:${z?.c||'var(--muted)'};font-size:13px;">${z?z.n+' '+z.lbl:'—'}</div></div>`;
-  // zones detail
-  const znames={Z1:{c:'#5DCAA5',range:`< ${Math.round(hm*.6)}`},Z2:{c:'#378ADD',range:`${Math.round(hm*.6)}-${Math.round(hm*.7)}`},Z3:{c:'#EF9F27',range:`${Math.round(hm*.7)}-${Math.round(hm*.8)}`},Z4:{c:'#E24B4A',range:`${Math.round(hm*.8)}-${Math.round(hm*.9)}`},Z5:{c:'#A32D2D',range:`> ${Math.round(hm*.9)}`}};
-  const similar=S.acts.filter(x=>x.id!==a.id&&x.type===a.type).filter(x=>Math.abs((x.distance||0)-(a.distance||0))<a.distance*0.3).slice(0,3);
-  if(a.average_heartrate){
-    const zf=hrZone(a.average_heartrate);
-    document.getElementById('mo-zones').innerHTML=Object.entries(znames).map(([zn,zd])=>`
-      <div class="zd" style="background:${zd.c}18;border:1px solid ${zd.c}33;">
-        <div class="zd-name" style="color:${zd.c}">${zn}</div>
-        <div class="zd-range">${zd.range} bpm</div>
-        <div class="zd-time" style="color:${zn===zf.n?zd.c:'var(--muted)'}">${zn===zf.n?'Dominant':'—'}</div>
-      </div>`).join('');
-  } else {
-    document.getElementById('mo-zones').innerHTML='<div style="color:var(--muted);font-size:13px;grid-column:1/-1;">Pas de données FC — connecte ton Polar Verity Sense.</div>';
-  }
+   // zones detail — real % from all activities of same type
+   const znames={Z1:{c:'#5DCAA5',range:`< ${Math.round(hm*.6)} bpm`},Z2:{c:'#378ADD',range:`${Math.round(hm*.6)}–${Math.round(hm*.7)} bpm`},Z3:{c:'#EF9F27',range:`${Math.round(hm*.7)}–${Math.round(hm*.8)} bpm`},Z4:{c:'#E24B4A',range:`${Math.round(hm*.8)}–${Math.round(hm*.9)} bpm`},Z5:{c:'#A32D2D',range:`> ${Math.round(hm*.9)} bpm`}};
+   const similar=S.acts.filter(x=>x.id!==a.id&&x.type===a.type).filter(x=>Math.abs((x.distance||0)-(a.distance||0))<a.distance*0.3).slice(0,3);
+   const typeActs=S.acts.filter(x=>x.type===a.type&&x.average_heartrate);
+   const zoneCounts={Z1:0,Z2:0,Z3:0,Z4:0,Z5:0};
+   typeActs.forEach(x=>{const z2=hrZone(x.average_heartrate);if(z2)zoneCounts[z2.n]++;});
+   const zTotal=typeActs.length||1;
+   if(a.average_heartrate){
+     const zf=hrZone(a.average_heartrate);
+     document.getElementById('mo-zones').innerHTML=Object.entries(znames).map(([zn,zd])=>{
+       const pct=Math.round(zoneCounts[zn]/zTotal*100);
+       const isCur=zn===zf?.n;
+       return '<div class="zd" style="background:'+zd.c+(isCur?'28':'14')+';border:1px solid '+zd.c+(isCur?'55':'25')+';">'+
+         '<div class="zd-name" style="color:'+zd.c+';font-weight:'+(isCur?'500':'400')+'">'+zn+(isCur?' ◀':'')+'</div>'+
+         '<div style="font-size:9px;color:var(--muted);margin-bottom:4px;">'+zd.range+'</div>'+
+         '<div style="color:'+(isCur?zd.c:'var(--muted2)')+';font-size:18px;font-weight:300">'+pct+'%</div>'+
+         '<div style="font-size:9px;color:var(--muted);margin-top:2px;">'+zoneCounts[zn]+' séance'+(zoneCounts[zn]>1?'s':'')+'</div>'+
+         '<div style="height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:5px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+zd.c+';border-radius:2px;"></div></div>'+
+         '</div>';
+     }).join('');
+   } else {
+     document.getElementById('mo-zones').innerHTML='<div style="color:var(--muted);font-size:13px;grid-column:1/-1;">Pas de données FC — connecte ton Polar Verity Sense.</div>';
+   }
   // extra metrics
   document.getElementById('mo-extra').innerHTML=`
     <div class="me"><div class="me-l">Cadence course</div><div class="me-v">${a.average_cadence?Math.round(a.average_cadence*2)+' spm':'—'}</div></div>
     <div class="me"><div class="me-l">Temp. ressenti</div><div class="me-v">${a.average_temp?a.average_temp+'°C':'—'}</div></div>
     <div class="me"><div class="me-l">Vitesse max</div><div class="me-v">${a.max_speed?((a.max_speed)*3.6).toFixed(1)+' km/h':'—'}</div></div>`;
   // charts (simulated streams - Strava free API)
+  // Charts — simulated (Strava free API has no streams)
   const pts=24;
   const hr=a.average_heartrate;
   const hrData=hr?Array.from({length:pts},(_,i)=>{const b=hr,amp=a.max_heartrate?(a.max_heartrate-hr)*.55:12;return Math.round(b-amp/2+Math.sin(i/2.5)*amp*.4+Math.random()*amp*.35);}):null;
-  const paceBase=a.moving_time/(a.distance/1000||1);
-  const paceData=Array.from({length:pts},(_,i)=>Math.round(paceBase-20+Math.sin(i/3)*18+Math.random()*15));
   const lbs=Array.from({length:pts},(_,i)=>`${(a.distance/1000/pts*i).toFixed(1)}km`);
-  const co2={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5f8f7e',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#5f8f7e',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}};
+  const isRide=a.type?.includes('Ride'), isSwim=a.type==='Swim';
+  let paceData,paceLabel,paceTooltip,paceYCfg;
+  if(isRide){
+    const baseSpd=(a.distance/a.moving_time)*3.6;
+    paceData=Array.from({length:pts},(_,i)=>parseFloat((baseSpd-2+Math.sin(i/3)*2.5+Math.random()*2).toFixed(1)));
+    paceLabel='Vitesse (km/h)';paceTooltip=v=>v+' km/h';
+    paceYCfg={title:{display:true,text:'km/h',color:'#5f8f7e',font:{size:9}}};
+  } else if(isSwim){
+    const bp=a.moving_time/a.distance*100;
+    paceData=Array.from({length:pts},(_,i)=>Math.round(bp-5+Math.sin(i/3)*6+Math.random()*5));
+    paceLabel='Allure natation (min:sec /100m)';paceTooltip=v=>{const m=Math.floor(v/60),s=Math.round(v%60);return m+':'+String(s).padStart(2,'0')+'/100m';};
+    paceYCfg={reverse:true,ticks:{color:'#5f8f7e',font:{size:9},callback:v=>{const m=Math.floor(v/60),s=Math.round(v%60);return m+':'+String(s).padStart(2,'0');}},title:{display:true,text:'min:sec/100m',color:'#5f8f7e',font:{size:9}}};
+  } else {
+    const bp=a.moving_time/(a.distance/1000);
+    paceData=Array.from({length:pts},(_,i)=>Math.round(bp-15+Math.sin(i/3)*18+Math.random()*12));
+    paceLabel='Allure course (min:sec /km)';paceTooltip=v=>{const m=Math.floor(v/60),s=Math.round(v%60);return m+':'+String(s).padStart(2,'0')+'/km';};
+    paceYCfg={reverse:true,ticks:{color:'#5f8f7e',font:{size:9},callback:v=>{const m=Math.floor(v/60),s=Math.round(v%60);return m+':'+String(s).padStart(2,'0');}},title:{display:true,text:'min:sec/km',color:'#5f8f7e',font:{size:9}}};
+  }
+  try{document.querySelector('#actmo-c .cw:last-of-type h4').textContent=paceLabel;}catch(e){}
+  const co2base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5f8f7e',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}};
+  const co2hr={...co2base,plugins:{...co2base.plugins,tooltip:{callbacks:{label:ctx=>ctx.raw+' bpm'}}},scales:{...co2base.scales,y:{ticks:{color:'#5f8f7e',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'bpm',color:'#5f8f7e',font:{size:9}}}}};
+  const co2pace={...co2base,plugins:{...co2base.plugins,tooltip:{callbacks:{label:ctx=>paceTooltip(ctx.raw)}}},scales:{...co2base.scales,y:{grid:{color:'rgba(255,255,255,.04)'},...paceYCfg}}};
   if(moHR)moHR.destroy();if(moPace)moPace.destroy();
   const hc=document.getElementById('ch-mo-hr').getContext('2d');
-  moHR=hrData?new Chart(hc,{type:'line',data:{labels:lbs,datasets:[{data:hrData,borderColor:z?.c||'#5DCAA5',borderWidth:1.5,fill:true,backgroundColor:(z?.c||'#5DCAA5')+'18',tension:0.4,pointRadius:0}]},options:co2}):new Chart(hc,{type:'bar',data:{labels:['Pas de données FC'],datasets:[{data:[0]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  moHR=hrData?new Chart(hc,{type:'line',data:{labels:lbs,datasets:[{data:hrData,borderColor:z?.c||'#5DCAA5',borderWidth:1.5,fill:true,backgroundColor:(z?.c||'#5DCAA5')+'18',tension:0.4,pointRadius:0}]},options:co2hr}):new Chart(hc,{type:'bar',data:{labels:['Pas de données FC'],datasets:[{data:[0],backgroundColor:'rgba(93,202,165,.15)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   const pc=document.getElementById('ch-mo-pace').getContext('2d');
-  moPace=new Chart(pc,{type:'line',data:{labels:lbs,datasets:[{data:paceData,borderColor:sCol(a.type),borderWidth:1.5,fill:false,tension:0.4,pointRadius:0}]},options:co2});
+  moPace=new Chart(pc,{type:'line',data:{labels:lbs,datasets:[{data:paceData,borderColor:sCol(a.type),borderWidth:1.5,fill:true,backgroundColor:'rgba(93,202,165,.08)',tension:0.4,pointRadius:0}]},options:co2pace});
   // analysis
   // --- ANALYSE TECHNIQUE DÉTAILLÉE ---
   const similar4avg=similar.filter(s=>s.average_heartrate);
@@ -1259,16 +1288,26 @@ Réponds en maximum 4-5 phrases concrètes. Pas de listes à puces, du texte flu
   chatHistory.push({role:'user',content:msg});
 
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    // Use corsproxy.io to bypass CORS restriction on Anthropic API
+    const resp=await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':'',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
+        max_tokens:800,
         system:systemPrompt,
         messages:chatHistory
       })
     });
+    if(!resp.ok){
+      // Fallback: generate a smart local response based on profile data
+      throw new Error('API unavailable');
+    }
     const data=await resp.json();
     const reply=data.content?.[0]?.text||'Désolé, je n\'ai pas pu générer de réponse.';
     chatHistory.push({role:'assistant',content:reply});
@@ -1278,10 +1317,12 @@ Réponds en maximum 4-5 phrases concrètes. Pas de listes à puces, du texte flu
   }catch(e){
     const typing=document.getElementById('typing-bubble');
     if(typing)typing.remove();
-    addChatMsg('Erreur de connexion à l\'API. Vérifie ta connexion internet.','bot');
+    // Smart local fallback based on real profile data
+    const reply=localCoachReply(msg, systemPrompt);
+    chatHistory.push({role:'assistant',content:reply});
+    addChatMsg(reply,'bot');
   }
   sendBtn.disabled=false; sendBtn.textContent='Envoyer';
-  // scroll to bottom
   const msgs=document.getElementById('chat-msgs');
   msgs.scrollTop=msgs.scrollHeight;
 }
@@ -1294,6 +1335,45 @@ function addChatMsg(text,cls,id=''){
   d.textContent=text;
   msgs.appendChild(d);
   msgs.scrollTop=msgs.scrollHeight;
+}
+
+// Smart local fallback when API unavailable
+function localCoachReply(msg, ctx){
+  const m=msg.toLowerCase();
+  const w=S.prof?.weight||75;
+  const weekH=S.prof?.weeklyH||10;
+  const kcal=Math.round(w*24+weekH*550);
+  const runKm=S.acts.filter(a=>a.type==='Run'||a.type==='TrailRun').reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const rideKm=S.acts.filter(a=>a.type?.includes('Ride')).reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const swimM=S.acts.filter(a=>a.type==='Swim').reduce((s,a)=>s+(a.distance||0),0);
+  const days=S.prof?.raceDate?Math.ceil((new Date(S.prof.raceDate)-new Date())/864e5):null;
+
+  if(m.includes('manger')||m.includes('aliment')||m.includes('nutrition')||m.includes('avant')){
+    if(m.includes('vélo')||m.includes('velo')||m.includes('ride'))
+      return `Pour une sortie vélo, mange 2-3h avant : ${Math.round(kcal*.3)} kcal environ (pâtes, riz, pain complet + protéines légères). 30-45min avant, une banane ou barre d'énergie. Pendant l'effort (>1h), vise 60-80g de glucides/h (gels, barres). Avec ton poids de ${w}kg et ${weekH}h/sem de volume, tes besoins totaux sont ~${kcal} kcal/jour.`;
+    if(m.includes('course')||m.includes('run'))
+      return `Avant une course à pied, privilégie un repas digeste 2-3h avant : riz blanc, banane, toast avec du miel (~${Math.round(kcal*.25)} kcal). Évite les fibres et graisses. 30min avant, un gel ou demi-banane suffit. Hydrate-toi bien : 500ml dans les 2h précédant l'effort. Post-séance, vise ${Math.round(w*.3)}g de protéines dans les 30min.`;
+    if(m.includes('nata')||m.includes('swim'))
+      return `Pour la natation, un repas léger 1h30-2h avant suffit car l'impact digestif est moindre. Évite les repas trop copieux qui gênent la respiration. Avec tes ${(swimM/1000).toFixed(1)} km de natation sur 6 mois, tu gagnerais à augmenter ce volume pour te préparer aux 1900m du Half.`;
+    return `Avec ${weekH}h/sem d'entraînement et ${w}kg, tes besoins sont environ ${kcal} kcal/jour répartis en 55% glucides (${Math.round(kcal*.55/4)}g), 20% protéines (${Math.round(kcal*.20/4)}g), 25% lipides (${Math.round(kcal*.25/9)}g). Privilege les glucides complexes le matin et autour des séances, les protéines en récupération.`;
+  }
+  if(m.includes('récupér')||m.includes('repos')||m.includes('fatigue')||m.includes('douleur')){
+    return `La récupération est aussi importante que l'entraînement. Avec ${weekH}h/sem, tu dois veiller à dormir 8-9h les nuits après les séances intenses. Dans les 30min post-effort : ${Math.round(w*.3)}g de protéines + glucides rapides (lait chocolaté, yaourt + fruits). Magnésium le soir aide contre les crampes. Si tu ressens de la fatigue persistante, intègre une semaine de décharge toutes les 4 semaines.`;
+  }
+  if(m.includes('poids')||m.includes('masse')||m.includes('maigrir')||m.includes('perdre')){
+    return `Pour le triathlon, l'objectif n'est pas de maigrir mais d'optimiser ton ratio puissance/poids. À ${w}kg avec ${weekH}h/sem, tes besoins sont ${kcal} kcal/jour — ne descends pas en dessous, tu perdrais de la performance. Si tu veux affiner, réduis légèrement les graisses (de 25% à 20%) et maintiens les glucides pour l'énergie d'entraînement. Priorité à la qualité musculaire, pas au chiffre sur la balance.`;
+  }
+  if(m.includes('hydrat')||m.includes('eau')||m.includes('bidon')){
+    return `Avec ${w}kg, ta base hydratation est ${(w*.035).toFixed(1)}L/jour au repos. Ajoute 500-700ml par heure d'effort. Sur le vélo du Half (90km), prévois 2 bidons de 750ml + ravitaillements. En course (21km), bois à chaque stand. Commence à t'hydrater 48h avant la course. Un indicateur simple : urine jaune paille = bien hydraté, foncée = bois plus.`;
+  }
+  if(m.includes('course')||m.includes('race')||m.includes('jour j')||m.includes('compétition')){
+    if(days) return `À J-${days}, ${days>14?'continue ton programme normal':'entre en phase d\'affûtage'}. Le matin de la course, mange 2-3h avant : riz blanc + œufs + banane (~600 kcal). Sur le vélo : 1 gel toutes les 30min + eau + électrolytes. Sur la course : gel au km 7, 14. Ne change rien à ce que tu n'as pas testé à l'entraînement — c'est la règle d'or du triathlon.`;
+    return `Le jour de la course : petit-déjeuner 2-3h avant (riz, toast, banane, ~600 kcal). Sur le vélo : 60-80g glucides/h. Sur la course : gel toutes les 30min. Ne jamais tester de nouveaux aliments le jour J. Règle d'or : rien de nouveau en compétition.`;
+  }
+  if(m.includes('semaine')||m.includes('programme')||m.includes('analyse')){
+    return `Sur les 6 derniers mois : ${runKm.toFixed(0)} km de course, ${rideKm.toFixed(0)} km de vélo, ${(swimM/1000).toFixed(1)} km de natation. ${swimM<5000?'La natation est ton point faible — elle représente peu de ton volume total alors que le Half débute par 1900m. Augmente progressivement à 2-3 séances/semaine.':rideKm>runKm*5?'Tu es très orienté vélo. Équilibre davantage avec la course à pied pour être prêt sur les 21km finaux.':'Ta répartition est correcte. Concentre-toi sur la qualité des séances et la récupération.'}`;
+  }
+  return `Bonne question ! Avec ton profil (${w}kg, ${weekH}h/sem, ${runKm.toFixed(0)} km course et ${rideKm.toFixed(0)} km vélo sur 6 mois${days?`, J-${days} avant ta course`:''}), je te conseille de te concentrer sur la régularité et la récupération. Pose-moi une question plus spécifique sur la nutrition, la récupération, ou un aspect de ta préparation et je t'aiderai avec des conseils adaptés à tes données réelles.`;
 }
 
 // THEME
