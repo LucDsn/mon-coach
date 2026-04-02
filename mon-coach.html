@@ -325,6 +325,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 
     <button class="nt" onclick="gt('sp')">Programme</button>
     <button class="nt" onclick="gt('sn')">Nutrition</button>
     <button class="nt" onclick="gt('sprof')">Profil</button>
+    <button class="nt" onclick="gt('sraceday')">Race Day 🏁</button>
   </div>
   <div class="nav-r">
     <button class="sync-btn" id="syncb" onclick="syncS()">
@@ -544,6 +545,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 
       <div class="prow"><div class="pl">FC repos (bpm)</div><input type="number" class="pi" id="p-hr" placeholder="55"></div>
       <div class="prow"><div class="pl">FTP vélo (W)</div><input type="number" class="pi" id="p-ftp" placeholder="En cours d'évaluation"></div>
       <button class="save-b" onclick="saveP()">Enregistrer</button>
+      <button onclick="openHRZones()" style="margin-top:8px;width:100%;background:rgba(93,202,165,.08);border:1px solid rgba(93,202,165,.25);color:var(--teal);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px;border-radius:8px;cursor:pointer;transition:all .15s;">💓 Personnaliser mes zones FC</button>
     </div>
     <div class="prof-panel">
       <div class="prof-title">Disponibilités</div>
@@ -578,6 +580,69 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- RACE DAY -->
+<div class="scr" id="sraceday">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;">
+    <div>
+      <div style="font-family:'DM Serif Display',serif;font-size:20px;">Race Day 🏁</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="rd-subtitle">Prépare ta course dans les moindres détails</div>
+    </div>
+    <button onclick="exportPDF()" style="display:flex;align-items:center;gap:7px;background:rgba(15,110,86,.15);border:1px solid rgba(29,158,117,.25);color:var(--teal);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:8px;cursor:pointer;transition:all .15s;">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exporter PDF
+    </button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="rd-main">
+
+    <!-- Countdown + Prediction -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="panel" id="rd-countdown-panel">
+        <div class="phd">Compte à rebours</div>
+        <div id="rd-countdown-display" style="text-align:center;padding:.5rem 0;"></div>
+      </div>
+      <div class="panel">
+        <div class="phd">Prédiction de temps</div>
+        <div id="rd-prediction"></div>
+      </div>
+      <div class="panel">
+        <div class="phd">Plan de course — allures cibles</div>
+        <div id="rd-race-plan"></div>
+      </div>
+    </div>
+
+    <!-- Checklist + Nutrition plan -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="panel">
+        <div class="phd">Checklist équipement <span style="font-size:11px;color:var(--teal);cursor:pointer;" onclick="resetChecklist()">Réinitialiser</span></div>
+        <div id="rd-checklist"></div>
+      </div>
+      <div class="panel">
+        <div class="phd">Nutrition race day</div>
+        <div id="rd-nutrition-plan"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly calendar view -->
+  <div class="panel" style="margin-top:0;">
+    <div class="phd">Semaine type — vue calendrier
+      <div style="display:flex;gap:5px;">
+        <button onclick="calNav(-1)" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:5px;cursor:pointer;">←</button>
+        <span id="cal-week-label" style="font-size:11px;color:var(--teal);padding:2px 6px;"></span>
+        <button onclick="calNav(1)" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:5px;cursor:pointer;">→</button>
+      </div>
+    </div>
+    <div id="rd-calendar"></div>
+  </div>
+
+  <!-- Form score -->
+  <div class="panel">
+    <div class="phd">Forme du moment & Personal Records</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="rd-form-pr"></div>
   </div>
 </div>
 
@@ -626,6 +691,40 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 
   </div>
 </div>
 
+<!-- SHARE MODAL -->
+<div class="mo" id="sharemo" onclick="closeMo('sharemo',event)">
+  <div class="modal" style="max-width:420px;">
+    <div class="mhd">
+      <div><div class="mtitle">Partager l'activité</div><div class="msub">Format Story Instagram / Strava</div></div>
+      <button class="mclose" onclick="closeMo('sharemo')">✕</button>
+    </div>
+    <div id="share-card-wrap" style="background:var(--panel2);border-radius:12px;overflow:hidden;margin-bottom:1rem;">
+      <canvas id="share-canvas" width="1080" height="1920" style="width:100%;height:auto;display:block;"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="downloadShareCard()" style="flex:1;background:var(--g2);border:none;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px;border-radius:9px;cursor:pointer;">⬇ Télécharger PNG</button>
+      <button onclick="closeMo('sharemo')" style="background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 16px;border-radius:9px;cursor:pointer;">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- HR ZONES MODAL -->
+<div class="mo" id="hrzonesmo" onclick="closeMo('hrzonesmo',event)">
+  <div class="modal" style="max-width:480px;">
+    <div class="mhd">
+      <div><div class="mtitle">Zones de fréquence cardiaque</div><div class="msub">Personnalise tes zones selon ta FC max</div></div>
+      <button class="mclose" onclick="closeMo('hrzonesmo')">✕</button>
+    </div>
+    <div style="margin-bottom:1rem;background:var(--panel2);border-radius:10px;padding:1rem;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:.8rem;">FC max actuelle : <strong style="color:var(--teal)" id="hrzm-max">—</strong> bpm — modifiable dans Profil</div>
+      <div id="hrzm-zones"></div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:1rem;">Les zones sont calculées automatiquement depuis ta FC max. Tu peux les affiner manuellement ci-dessous. Ces valeurs s'appliquent à toutes les analyses de l'app.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:1rem;" id="hrzm-inputs"></div>
+    <button onclick="saveHRZones()" style="width:100%;background:var(--g2);border:none;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px;border-radius:9px;cursor:pointer;">Enregistrer mes zones</button>
+  </div>
+</div>
+
 <script>
 const CID='219446',CSE='f3838c9f5301bce9e761249685682e11697679cd';
 const RD='https://LucDsn.github.io/mon-coach/mon-coach.html';
@@ -639,13 +738,13 @@ function ld(){try{const d=localStorage.getItem('mc3');if(d)S=JSON.parse(d);}catc
 function showScr(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   document.getElementById(id).classList.add('on');
-  const navIds=['sd','sstats','sa','sp','sn','sprof'];
+  const navIds=['sd','sstats','sa','sp','sn','sprof','sraceday'];
   document.getElementById('mnav').style.display=navIds.includes(id)?'flex':'none';
 }
 
 function gt(id){
   document.querySelectorAll('.nt').forEach((b,i)=>{
-    b.classList.toggle('active',['sd','sstats','sa','sp','sn','sprof'][i]===id);
+    b.classList.toggle('active',['sd','sstats','sa','sp','sn','sprof','sraceday'][i]===id);
   });
   showScr(id);
   if(id==='sstats')renderStats();
@@ -653,6 +752,7 @@ function gt(id){
   if(id==='sp')renderProg();
   if(id==='sn')renderNutri();
   if(id==='sprof')renderProf();
+  if(id==='sraceday')renderRaceDay();
 }
 
 function stab(mode,el){
@@ -753,6 +853,8 @@ function dCls(t){return t?.includes('Run')?'dr':t?.includes('Ride')?'db':'ds';}
 function hrmax(){return S.prof?.hrmax||185;}
 function hrZone(bpm){
   if(!bpm)return null;
+  // Use custom zones if defined, else default % of FCmax
+  if(S.prof?.customZones){return hrZoneCustom(bpm);}
   const hm=hrmax(),p=bpm/hm*100;
   if(p<60)return{n:'Z1',lbl:'Récupération',c:'#5DCAA5',range:'<60%'};
   if(p<70)return{n:'Z2',lbl:'Endurance',c:'#378ADD',range:'60-70%'};
@@ -1135,6 +1237,7 @@ function openAct(id){
   if(!similar.length){sims.innerHTML='<div style="color:var(--muted);font-size:12px;">Pas encore assez de séances similaires.</div>';}
   else{sims.innerHTML=similar.map(s=>`<div class="sim-item"><div>${fDt(s.start_date)} — ${s.name}</div><div style="color:var(--muted)">${fD(s.distance)}km · ${paceStr(s)} ${s.average_heartrate?'· '+Math.round(s.average_heartrate)+' bpm':''}</div></div>`).join('');}
   document.getElementById('actmo').classList.add('open');
+  addShareToModal(id);
 }
 
 function closeMo(id,e){if(!e||e.target===document.getElementById(id)){document.getElementById(id).classList.remove('open');}}
@@ -1142,24 +1245,31 @@ function closeMo(id,e){if(!e||e.target===document.getElementById(id)){document.g
 // PROGRAM
 const SESSIONS={
   Run:[
-    {n:'Endurance fondamentale',d:'Course continue à FC Z2. Objectif : maintenir une conversation tout au long. Foulée détendue, ne cherche pas à aller vite.',zones:[0,80,15,5,0],dur:'1h',tss:55,tip:'Mange 2h avant. Restez en Z2 même dans les côtes.'},
-    {n:'Fractionné court 8×400m',d:'Après 15min échauffement Z2 : 8 répétitions de 400m en Z4-Z5, récupération 90s entre chaque. Finir par 10min retour au calme.',zones:[10,25,15,35,15],dur:'55min',tss:85,tip:'Les 400m doivent être inconfortables mais tenus. Pas de sprint.'},
-    {n:'Tempo run 20min',d:'Échauffement 15min, puis 20min en Z3 (allure marathon confortable), retour calme 10min. Travail de seuil aérobie.',zones:[10,15,60,15,0],dur:'45min',tss:70,tip:'En Z3, tu peux parler mais pas facilement.'},
-    {n:'Long run Z2',d:'Sortie longue à intensité modérée Z2. Objectif : temps passé sur les pieds, pas la vitesse. Ravitaillement toutes les 45min.',zones:[5,75,18,2,0],dur:'2h',tss:110,tip:'Emmène gel + eau. Gestion de l\'effort capitale.'},
-    {n:'Course récupération',d:'30-40min à allure très facile, FC Z1. Favorise la circulation sanguine et l\'élimination des déchets métaboliques.',zones:[70,30,0,0,0],dur:'35min',tss:30,tip:'Vraiment lent. Si tu te sens bien, résiste à accélérer.'},
+    {n:'Endurance fondamentale Z2',d:'Course continue à allure conversationnelle, FC en zone Z2 tout au long. Foulée légère, détendue. Si tu montes une côte, ralentis pour rester en Z2. C\'est la base de tout le travail aérobie.',zones:[0,80,15,5,0],dur:'1h–1h30',tss:60,tip:'Mange 2h avant. Garde Z2 même en côte — ralentis si nécessaire. Fin : 5min de marche.'},
+    {n:'Fractionné 8×400m',d:'Échauffement 15min Z2. Puis 8 répétitions de 400m à allure 5km (Z4-Z5), avec 90 secondes de trot récupération entre chaque. Retour au calme 10min Z1.',zones:[10,15,15,40,20],dur:'55min',tss:90,tip:'Les 400m doivent être difficiles mais réguliers. Si les derniers sont 10s+ plus lents, réduis à 6 répétitions.'},
+    {n:'Tempo continu 25min',d:'Échauffement 15min Z1-Z2, puis 25min à allure tempo soutenu (Z3, rythme marathon difficile), retour calme 10min. Travail du seuil aérobie.',zones:[10,10,65,15,0],dur:'50min',tss:75,tip:'En Z3 : tu peux parler mais pas facilement. Maintiens l\'allure jusqu\'à la fin.'},
+    {n:'Long run progression',d:'1ère heure en Z2 confortable, derniers 20-30min légèrement plus rapide (Z3). Objectif : apprendre à courir fatigué. Ravitaillement toutes les 40min.',zones:[5,65,25,5,0],dur:'1h30–2h',tss:120,tip:'Gel + eau obligatoires. Ne commence pas trop vite — tu dois finir plus fort que tu n\'as démarré.'},
+    {n:'Récupération active',d:'Course très facile Z1, allure de discussion totale. Objectif : circuler le sang dans les jambes après une séance intense. Ne jamais accélérer.',zones:[80,20,0,0,0],dur:'30–40min',tss:28,tip:'Si tu te sens trop bien et veux accélérer, c\'est signe que tu récupères — résiste. C\'est le but.'},
+    {n:'Côtes 8×1min',d:'Échauffement 20min Z2. Trouver une côte à 6-8%. 8 répétitions de 1min en Z4-Z5 en montée, descente en trot récupération. Retour calme 10min.',zones:[10,20,10,35,25],dur:'55min',tss:85,tip:'Pousse avec les bras en montée. Réduction de la fréquence de pas mais maintien de la puissance.'},
   ],
   Ride:[
-    {n:'Sortie endurance vélo',d:'Vélo à cadence élevée (90-100 rpm) en Z2. Travail de base aérobie, position aérodynamique. Boire toutes les 15min.',zones:[0,80,15,5,0],dur:'2h',tss:80,tip:'Cadence haute, résistance faible. Pense à manger à partir de 45min.'},
-    {n:'Intervals seuil 3×10min',d:'Après 20min d\'échauffement : 3 blocs de 10min en Z4 (intense mais tenu), 5min de récupération Z1 entre chaque. Retour calme 15min.',zones:[10,20,10,50,10],dur:'1h20',tss:105,tip:'Les intervals doivent être égaux. Si tu décroches sur le 3e, réduis à 8min.'},
-    {n:'Longue sortie vélo',d:'Grande sortie d\'endurance simulant la partie vélo du Half (90km). Rythme Z2-Z3, gestion alimentation et hydratation comme en course.',zones:[5,65,25,5,0],dur:'3h-4h',tss:160,tip:'1 gel toutes les 30min + eau. Prépare 2 bidons. Tester ta nutrition de course.'},
-    {n:'Sweet spot 2×20min',d:'20min en sweet spot (88-93% FTP, haut Z3/bas Z4). Récupération 5min. Très efficace pour développer le seuil.',zones:[5,15,35,45,0],dur:'1h',tss:90,tip:'Le sweet spot n\'est pas confortable. C\'est normal.'},
-    {n:'Récupération vélo',d:'Sortie très légère Z1. Jambes qui tournent, aucune pression. Idéal le lendemain d\'une longue sortie.',zones:[85,15,0,0,0],dur:'45min',tss:25,tip:'Résiste à l\'envie d\'accélérer. Le but est la récupération active.'},
+    {n:'Endurance aérobie vélo',d:'Sortie longue à cadence 90-100 rpm, FC en Z2 constant. Position aérodynamique travaillée. Alimentation dès 45min. Travail de base fondamentale.',zones:[0,82,13,5,0],dur:'2h–2h30',tss:90,tip:'Cadence haute (90+ rpm), petit plateau. Boire 500ml/h. Gel à 45min, 1h30. Prépare les bidons avant.'},
+    {n:'Sweet spot 2×20min',d:'Échauffement 20min. 2 blocs de 20min en sweet spot (88-93% FCmax, Z3 haut/Z4 bas). 8min récupération Z1 entre les 2 blocs. Retour calme 15min.',zones:[5,15,35,42,3],dur:'1h20',tss:105,tip:'Sweet spot = effort soutenu mais tenable 20min. Si tu dois t\'arrêter avant, c\'est trop intense.'},
+    {n:'Simulation Half vélo',d:'Sortie simulant les 90km de course. Première heure Z2 modéré, puis Z2-Z3 jusqu\'à la fin. Tester nutrition de course : gel + eau + électrolytes. Même rythme alimentaire qu\'en compétition.',zones:[5,60,30,5,0],dur:'3h–4h',tss:165,tip:'Nutrition toutes les 30min. Ne dépasse pas Z3. Objectif : arriver frais pour "courir" 20min après.'},
+    {n:'Intervals puissance 5×5min',d:'Après 20min échauffement : 5 répétitions de 5min en Z4 (effort soutenu, difficile à tenir). 5min récupération Z1 entre chaque. Retour calme 15min.',zones:[8,15,12,55,10],dur:'1h15',tss:110,tip:'Maintiens la même puissance sur tous les intervals. 5 équilibrés > 2 forts + 3 mous.'},
+    {n:'Récupération vélo Z1',d:'Sortie légère, aucune pression. Jambes qui tournent en cadence, FC < Z2. Idéal J+1 après longue sortie ou compétition. Jamais de dépassement.',zones:[88,12,0,0,0],dur:'45min',tss:24,tip:'Ne pas aller plus vite. Ton corps répare. La tentation d\'accélérer indique que tu récupères bien — garde-la pour demain.'},
+    {n:'Brick vélo→course 🧱',d:'SESSION BRICK TRIATHLON : 60min de vélo à allure course (Z2-Z3), puis transition T2 rapide (< 2min) et 20min de course à pied à allure cible Half. Apprend à courir sur des jambes de cycliste.',zones:[5,55,35,5,0],dur:'1h30+',tss:120,tip:'Ne t\'arrête pas entre vélo et course. Enfile les chaussures vite. Les premières minutes de course seront difficiles — c\'est normal et ça passe.'},
   ],
   Swim:[
-    {n:'Technique & endurance',d:'Échauffement 400m, puis sets de drills techniques (catch-up, fingertip drag), finir par 800m continu. Focus sur la traction et la position corps.',zones:[20,70,10,0,0],dur:'45min',tss:45,tip:'La natation en combinaison est différente. Entraîne-toi sans si possible.'},
-    {n:'Endurance natation 2km',d:'Nage continue ou avec pauses courtes, rythme confortable Z2. Objectif Half : 1900m. Cette séance t\'y prépare mentalement et physiquement.',zones:[10,75,15,0,0],dur:'45-55min',tss:55,tip:'Pense à ta respiration : expire sous l\'eau, inspire vite.'},
-    {n:'Vitesse & fartlek',d:'Échauffement 300m, 6×100m en Z4 (récup 30s), 400m Z2, 4×50m sprint, retour calme 200m.',zones:[15,30,15,30,10],dur:'40min',tss:70,tip:'Les sprints apprennent à ta FC à monter et descendre rapidement.'},
-    {n:'Clip tempe Polar — nage FC',d:'Séance dédiée test du clip Polar sur lunettes. Nage 1500m continu avec enregistrement FC. Analyse zones post-séance.',zones:[10,70,20,0,0],dur:'40min',tss:50,tip:'Fix bien le clip avant de mettre ton bonnet. Vérifie après le premier virage.'},
+    {n:'Technique & drills',d:'Échauffement 400m. Drills : 4×50m catch-up drill (mains qui se touchent), 4×50m fingertip drag (doigts qui rasent l\'eau), 4×50m pull (planche entre jambes). Finir 600m continu Z2.',zones:[25,65,10,0,0],dur:'45min',tss:42,tip:'La technique prime sur la vitesse. Film-toi si possible. Focus : entrée des mains dans l\'eau (largeur épaules, pas croisé).'},
+    {n:'Volume endurance 2km',d:'400m échauffement. Puis 1600m en sets de 400m avec 30s récupération. Rythme confortable Z2. Objectif Half : 1900m — cette séance est ta fondation.',zones:[10,78,12,0,0],dur:'50min',tss:55,tip:'Respire tous les 3 temps (bilatéral). Si tu souffles après chaque longueur, ralentis. Tu dois parler entre les séries.'},
+    {n:'Vitesse 6×100m',d:'Échauffement 300m. 6 répétitions de 100m en Z4 (fort mais pas sprint), récupération 45s. 400m Z2. 4×50m sprints. Retour calme 200m.',zones:[15,25,15,35,10],dur:'40min',tss:68,tip:'Les 100m doivent être rapides mais réguliers. Compte tes coups de bras pour contrôler l\'allure.'},
+    {n:'Test clip Polar + FC',d:'Pose le clip Verity Sense sur ta sangle de lunettes, mets le bonnet par-dessus. Nage 1500m continu en mode enregistrement. Analyse les zones FC post-séance dans l\'app.',zones:[10,72,18,0,0],dur:'40min',tss:50,tip:'Vérifie que le clip est bien positionné avant de plonger. Après le 1er virage, touche-le discrètement pour confirmer qu\'il est en place.'},
+    {n:'Simulation départ course',d:'Départ "mass start" simulé : 200m fort (comme en compétition avec agitation), puis retour Z2 pour 1200m, puis relance finale 200m. Apprend à gérer l\'adrénaline du départ.',zones:[15,55,20,10,0],dur:'40min',tss:60,tip:'Le départ de natation en triathlon est chaotique. Pratique à te repositionner et à retrouver ton rythme rapidement.'},
+  ],
+  Brick:[
+    {n:'Brick court 45+15min 🧱',d:'45min de vélo Z2-Z3, transition T2 chronométrée, 15min de course à pied. Objectif : ressentir les jambes de cycliste et apprendre à les activer rapidement.',zones:[5,60,30,5,0],dur:'1h05+T2',tss:85,tip:'Chronométre ta transition. Objectif : < 3min. Chaussures avec élastiques, short vélo qui peut courir.'},
+    {n:'Brick long 90+30min 🧱',d:'Simulation complète : 2h-2h30 de vélo allure course, T2 rapide, 30min de course à pied à allure cible. C\'est la séance clé du programme Half.',zones:[5,55,35,5,0],dur:'2h30+T2+30min',tss:190,tip:'Nutrition comme en course. Ne part pas trop vite sur le vélo. La course doit être possible sur jambes fatiguées.'},
   ]
 };
 
@@ -1441,6 +1551,545 @@ function saveP(){
   S.prof.weaknesses=document.getElementById('p-weaknesses').value;
   sv();renderCountdown();
   const btn=event.target;btn.textContent='✓ Enregistré';setTimeout(()=>btn.textContent='Enregistrer',1500);
+}
+
+// ===== HR ZONES =====
+function getHRZones(){
+  const hm=hrmax();
+  const custom=S.prof?.customZones;
+  return custom||{
+    Z1:{min:0,max:Math.round(hm*.6),c:'#5DCAA5',lbl:'Récupération'},
+    Z2:{min:Math.round(hm*.6),max:Math.round(hm*.7),c:'#378ADD',lbl:'Endurance'},
+    Z3:{min:Math.round(hm*.7),max:Math.round(hm*.8),c:'#EF9F27',lbl:'Tempo'},
+    Z4:{min:Math.round(hm*.8),max:Math.round(hm*.9),c:'#E24B4A',lbl:'Seuil'},
+    Z5:{min:Math.round(hm*.9),max:999,c:'#A32D2D',lbl:'VO2max'},
+  };
+}
+function openHRZones(){
+  const hm=hrmax();
+  const zones=getHRZones();
+  document.getElementById('hrzm-max').textContent=hm;
+  document.getElementById('hrzm-zones').innerHTML=Object.entries(zones).map(([zn,zd])=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div style="width:10px;height:10px;border-radius:50%;background:${zd.c};flex-shrink:0;"></div>
+      <div style="font-size:12px;flex:1;">${zn} — ${zd.lbl}</div>
+      <div style="font-size:12px;color:var(--muted);">${zd.min}–${zn==='Z5'?'max':zd.max} bpm</div>
+    </div>`).join('');
+  document.getElementById('hrzm-inputs').innerHTML=Object.entries(zones).map(([zn,zd])=>`
+    <div style="text-align:center;">
+      <div style="font-size:10px;color:${zd.c};font-weight:500;margin-bottom:4px;">${zn}</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:4px;">min bpm</div>
+      <input type="number" id="hrz-${zn}" value="${zd.min}" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-size:12px;padding:5px;border-radius:6px;outline:none;text-align:center;">
+    </div>`).join('');
+  document.getElementById('hrzonesmo').classList.add('open');
+}
+function saveHRZones(){
+  const hm=hrmax();
+  const mins={};
+  ['Z1','Z2','Z3','Z4','Z5'].forEach(z=>{mins[z]=parseInt(document.getElementById('hrz-'+z).value)||0;});
+  S.prof.customZones={
+    Z1:{min:mins.Z1,max:mins.Z2-1,c:'#5DCAA5',lbl:'Récupération'},
+    Z2:{min:mins.Z2,max:mins.Z3-1,c:'#378ADD',lbl:'Endurance'},
+    Z3:{min:mins.Z3,max:mins.Z4-1,c:'#EF9F27',lbl:'Tempo'},
+    Z4:{min:mins.Z4,max:mins.Z5-1,c:'#E24B4A',lbl:'Seuil'},
+    Z5:{min:mins.Z5,max:999,c:'#A32D2D',lbl:'VO2max'},
+  };
+  sv();closeMo('hrzonesmo');
+  const b=event.target;b.textContent='✓ Enregistré';setTimeout(()=>b.textContent='Enregistrer mes zones',1500);
+}
+function hrZoneCustom(bpm){
+  if(!bpm)return null;
+  const zones=getHRZones();
+  for(const [n,z] of Object.entries(zones)){if(bpm>=z.min&&bpm<=z.max)return{n,...z};}
+  return{n:'Z5',...zones.Z5};
+}
+
+// ===== RACE DAY =====
+let calOffset=0;
+function renderRaceDay(){
+  const prof=S.prof;
+  const rd=prof?.raceDate;
+  const days=rd?Math.ceil((new Date(rd)-new Date())/864e5):null;
+
+  // Subtitle
+  document.getElementById('rd-subtitle').textContent=rd
+    ?`${new Date(rd).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · ${days>0?'J-'+days:'Jour J !'}`
+    :'Configure ta date de course dans Profil';
+
+  // Countdown
+  const cdEl=document.getElementById('rd-countdown-display');
+  if(days&&days>0){
+    const weeks=Math.floor(days/7),remDays=days%7;
+    cdEl.innerHTML=`
+      <div style="display:flex;justify-content:center;gap:16px;margin-bottom:.5rem;">
+        ${[{v:weeks,l:'semaines'},{v:remDays,l:'jours'},{v:Math.floor(days/30),l:'mois'}].map(x=>`
+        <div><div style="font-size:36px;font-weight:300;color:var(--teal);line-height:1;">${x.v}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">${x.l}</div></div>`).join('')}
+      </div>
+      <div style="font-size:12px;color:var(--muted);">Phase : ${days>56?'Construction':days>28?'Développement':days>14?'Affûtage':'Race week'}</div>`;
+  } else {
+    cdEl.innerHTML=`<div style="font-size:16px;color:var(--muted);">Date de course non configurée</div>`;
+  }
+
+  // Prediction
+  renderPrediction();
+
+  // Race plan
+  renderRacePlan();
+
+  // Checklist
+  renderChecklist();
+
+  // Nutrition plan
+  renderRaceNutrition();
+
+  // Calendar
+  renderCalendar();
+
+  // Form + PR
+  renderFormPR();
+}
+
+function renderPrediction(){
+  const acts=S.acts;
+  const el=document.getElementById('rd-prediction');
+  const runs=acts.filter(a=>a.type==='Run'&&a.distance>8000&&a.moving_time);
+  const rides=acts.filter(a=>a.type?.includes('Ride')&&a.distance>30000&&a.moving_time);
+  const swims=acts.filter(a=>a.type==='Swim'&&a.distance>500&&a.moving_time);
+
+  const avgRunPace=runs.length?runs.reduce((s,a)=>s+a.moving_time/(a.distance/1000),0)/runs.length:null;
+  const avgRideSpd=rides.length?rides.reduce((s,a)=>s+(a.distance/a.moving_time)*3.6,0)/rides.length:null;
+  const avgSwimPace=swims.length?swims.reduce((s,a)=>s+a.moving_time/a.distance*100,0)/swims.length:null;
+
+  const swimT=avgSwimPace?Math.round(avgSwimPace*19):null; // 1900m
+  const bikeT=avgRideSpd?Math.round(90/avgRideSpd*3600):null; // 90km
+  const runT=avgRunPace?Math.round(avgRunPace*21.1):null; // 21.1km
+  const transT=300; // 5min transitions
+  const totalT=swimT&&bikeT&&runT?swimT+bikeT+runT+transT:null;
+
+  const fmt=s=>{if(!s)return'—';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?`${h}h${String(m).padStart(2,'0')}`:`${m}min`;};
+
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:.8rem;">
+      ${[['🏊 Natation',fmt(swimT),'1,9 km'],[' 🚴 Vélo',fmt(bikeT),'90 km'],['🏃 Course',fmt(runT),'21,1 km'],['⏱ Total',totalT?`<span style="color:var(--teal);font-weight:500">${fmt(totalT)}</span>`:'—','+ transitions']].map(([l,v,s])=>`
+      <div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${l}</div>
+        <div style="font-size:14px;">${v}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;">${s}</div>
+      </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.6;">
+      ${!totalT?'⚠️ Pas assez d\'activités pour estimer. Fais au moins 3 sorties vélo >30km, 3 courses >8km et 3 nages >500m.':'Estimation basée sur tes '+acts.length+' activités. En course, vise -5% sur le vélo et -3% sur la course par rapport à l\'entraînement.'}
+    </div>`;
+}
+
+function renderRacePlan(){
+  const el=document.getElementById('rd-race-plan');
+  const acts=S.acts;
+  const hm=hrmax();
+  const runs=acts.filter(a=>a.type==='Run'&&a.distance>8000&&a.moving_time);
+  const rides=acts.filter(a=>a.type?.includes('Ride')&&a.distance>30000&&a.moving_time);
+  const avgRunPace=runs.length?runs.reduce((s,a)=>s+a.moving_time/(a.distance/1000),0)/runs.length:null;
+  const avgRideSpd=rides.length?rides.reduce((s,a)=>s+(a.distance/a.moving_time)*3.6,0)/rides.length:null;
+  const targetRunPace=avgRunPace?avgRunPace*1.03:null;
+  const targetRideSpd=avgRideSpd?avgRideSpd*0.95:null;
+  const fmtPace=s=>{if(!s)return'—';const m=Math.floor(s/60),sec=Math.round(s%60);return`${m}:${String(sec).padStart(2,'0')}/km`;};
+
+  el.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:.8rem;">Allures cibles (−3 à −5% vs entraînement pour gérer l'effort sur la distance)</div>
+    ${[
+      {disc:'🏊 Natation 1900m',target:'Effort modéré Z2–Z3. Départ conservateur.',fc:`${Math.round(hm*.7)}–${Math.round(hm*.8)} bpm`,color:'var(--teal2)'},
+      {disc:'T1 Transition',target:'Rapide mais sans panique. Prévoir 2–3 min.',fc:'—',color:'var(--muted)'},
+      {disc:'🚴 Vélo 90km',target:targetRideSpd?`${targetRideSpd.toFixed(1)} km/h cible`:'Calculé après plus d\'activités',fc:`${Math.round(hm*.72)}–${Math.round(hm*.82)} bpm`,color:'var(--blue)'},
+      {disc:'T2 Transition',target:'Changement rapide, boire avant de repartir.',fc:'—',color:'var(--muted)'},
+      {disc:'🏃 Course 21,1km',target:targetRunPace?`${fmtPace(targetRunPace)} cible`:'Calculé après plus d\'activités',fc:`${Math.round(hm*.78)}–${Math.round(hm*.88)} bpm`,color:'var(--teal)'},
+    ].map(r=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:500;width:110px;flex-shrink:0;color:${r.color}">${r.disc}</div>
+        <div style="font-size:11px;flex:1;">${r.target}</div>
+        <div style="font-size:10px;color:var(--muted);text-align:right;white-space:nowrap;">${r.fc}</div>
+      </div>`).join('')}`;
+}
+
+function renderChecklist(){
+  const el=document.getElementById('rd-checklist');
+  const saved=JSON.parse(localStorage.getItem('mc3_checklist')||'{}');
+  const items=[
+    {cat:'Natation 🏊',items:['Combinaison néoprène / maillot','Lunettes de natation (+ paire de secours)','Bonnet (fourni ou perso)','Polar Verity Sense + clip lunettes','Anti-buée lunettes']},
+    {cat:'Vélo 🚴',items:['Vélo révisé','Casque homologué','Chaussures vélo + clés','2 bidons (eau + électrolytes)','Gels / barres (1 toutes 30min)','Chambre à air + CO2 + kit réparation','Compteur vélo chargé','Lunettes vélo']},
+    {cat:'Course 🏃',items:['Chaussures de course rodées','Dossard + ceinture dossard','Casquette / visière','Gels pour la course (km 7, 14)','Elastiques lacets triathlon']},
+    {cat:'Transition / Général',items:['Sac transition organisé','Serviette T1 et T2','Crème anti-frottements','Nutrition J-1 préparée','Réveil réglé (J-3h avant départ)','Billet / inscription','Numéro athlète récupéré']},
+  ];
+  el.innerHTML=items.map(cat=>`
+    <div style="margin-bottom:.8rem;">
+      <div style="font-size:11px;font-weight:500;color:var(--muted2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.07em;">${cat.cat}</div>
+      ${cat.items.map((item,i)=>{
+        const key=cat.cat+'-'+i;
+        const done=saved[key];
+        return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;" onclick="toggleCheck('${key}',this)">
+          <div style="width:16px;height:16px;border-radius:4px;border:1.5px solid ${done?'var(--teal)':'var(--border)'};background:${done?'var(--teal)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">
+            ${done?'<svg viewBox="0 0 12 12" width="10" height="10"><polyline points="2,6 5,9 10,3" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>':''}
+          </div>
+          <div style="font-size:12px;${done?'color:var(--muted);text-decoration:line-through;':''}">${item}</div>
+        </div>`;}).join('')}
+    </div>`).join('');
+}
+
+function toggleCheck(key,el){
+  const saved=JSON.parse(localStorage.getItem('mc3_checklist')||'{}');
+  saved[key]=!saved[key];
+  localStorage.setItem('mc3_checklist',JSON.stringify(saved));
+  renderChecklist();
+}
+function resetChecklist(){
+  localStorage.removeItem('mc3_checklist');
+  renderChecklist();
+}
+
+function renderRaceNutrition(){
+  const el=document.getElementById('rd-nutrition-plan');
+  const w=S.prof?.weight||75;
+  el.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:.8rem;">Plan personnalisé pour ${w}kg</div>
+    ${[
+      {t:'J-2 (Veille de veille)','p':`Charge glucidique : pâtes, riz, pain. Boire ${(w*.04).toFixed(1)}L eau + électrolytes. Éviter alcool et aliments inconnus.`},
+      {t:'J-1 (Veille)','p':`Repas "classique" : pâtes + sauce légère + pain + banane. Pas de fibres excessives. Préparer gels et bidons. Dormir tôt.`},
+      {t:'Matin course','p':`3h avant : ${Math.round(w*5)} kcal (riz blanc, toast, œufs, banane). Café si habituel. Boire 500ml. Arrêter manger 2h avant.`},
+      {t:'Natation','p':'Pas de nutrition. Hydraté avant le départ. Concentration sur la technique.'},
+      {t:'Vélo (90km)','p':`Gel km 15, 30, 45, 60, 75 + barre km 25, 50. Bidon eau toutes les 30min. Bidon électrolytes. ${Math.round(w*.8)}g glucides/h max.`},
+      {t:'Course (21km)','p':`Gel km 7 et 14. Eau à chaque ravito. Cola en fin de course si besoin (km 17+). Rien de nouveau par rapport à l'entraînement.`},
+    ].map(r=>`
+      <div style="padding:6px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:500;color:var(--teal);margin-bottom:3px;">${r.t}</div>
+        <div style="font-size:11px;color:var(--muted2);line-height:1.6;">${r.p}</div>
+      </div>`).join('')}`;
+}
+
+function renderCalendar(){
+  const prof=S.prof;
+  const dispo=prof?.days||[0,1,2,3,4,5,6];
+  const now=new Date();
+  // Get Monday of current week + offset
+  const dow=(now.getDay()+6)%7;
+  const mon=new Date(now);
+  mon.setDate(now.getDate()-dow+calOffset*7);
+  mon.setHours(0,0,0,0);
+
+  const weekLabel=`Semaine du ${mon.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}`;
+  document.getElementById('cal-week-label').textContent=weekLabel;
+
+  const dns=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  // Get real activities for this week
+  const weekEnd=new Date(mon);weekEnd.setDate(mon.getDate()+6);weekEnd.setHours(23,59,59);
+  const weekActs=S.acts.filter(a=>{const d=new Date(a.start_date);return d>=mon&&d<=weekEnd;});
+
+  const days=Array.from({length:7},(_,i)=>{
+    const d=new Date(mon);d.setDate(mon.getDate()+i);
+    const dayActs=weekActs.filter(a=>new Date(a.start_date).toDateString()===d.toDateString());
+    const isToday=d.toDateString()===now.toDateString();
+    const isDisp=dispo.includes(i);
+    return {d,i,dayActs,isToday,isDisp};
+  });
+
+  const el=document.getElementById('rd-calendar');
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">
+      ${days.map(({d,i,dayActs,isToday,isDisp})=>`
+        <div style="border-radius:10px;border:1px solid ${isToday?'var(--teal)':dayActs.length?'rgba(93,202,165,.25)':'var(--border)'};background:${isToday?'rgba(93,202,165,.07)':dayActs.length?'rgba(93,202,165,.03)':'rgba(255,255,255,.01)'};padding:8px 6px;min-height:80px;">
+          <div style="font-size:10px;font-weight:${isToday?'500':'400'};color:${isToday?'var(--teal)':'var(--muted)'};margin-bottom:4px;text-align:center;">${dns[i]}</div>
+          <div style="font-size:11px;color:${isToday?'var(--text)':'var(--muted2)'};text-align:center;margin-bottom:5px;">${d.getDate()}</div>
+          ${dayActs.length?dayActs.map(a=>`
+            <div style="background:${sCol(a.type)}22;border-radius:4px;padding:2px 4px;margin-bottom:2px;font-size:9px;color:${sCol(a.type)};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.name}">
+              ${sfr(a.type)} ${fD(a.distance)}km
+            </div>`).join('')
+          :isDisp?`<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:4px;">Dispo</div>`
+          :`<div style="font-size:9px;color:rgba(255,255,255,.15);text-align:center;margin-top:4px;">Repos</div>`}
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:.8rem;flex-wrap:wrap;">
+      ${weekActs.length?`
+        <div style="font-size:11px;color:var(--muted);">Cette semaine : <strong style="color:var(--text)">${weekActs.length} séance${weekActs.length>1?'s':''}</strong> · ${(weekActs.reduce((s,a)=>s+(a.moving_time||0),0)/3600).toFixed(1)}h · ${fD(weekActs.reduce((s,a)=>s+(a.distance||0),0))} km total</div>
+      `:'<div style="font-size:11px;color:var(--muted);">Aucune activité Strava cette semaine.</div>'}
+    </div>`;
+}
+
+function calNav(dir){calOffset+=dir;renderCalendar();}
+
+function renderFormPR(){
+  const el=document.getElementById('rd-form-pr');
+  const acts=S.acts;
+  // Form score: last 7 days TSS vs avg
+  const now=new Date();
+  const w7=new Date(now);w7.setDate(now.getDate()-7);
+  const w28=new Date(now);w28.setDate(now.getDate()-28);
+  const recent=acts.filter(a=>new Date(a.start_date)>=w7);
+  const month=acts.filter(a=>new Date(a.start_date)>=w28);
+  const recentTSS=recent.reduce((s,a)=>s+(calcTSS(a)||0),0);
+  const monthTSS=month.reduce((s,a)=>s+(calcTSS(a)||0),0);
+  const avgWeekTSS=monthTSS/4;
+  const formScore=avgWeekTSS>0?Math.round((recentTSS/avgWeekTSS)*100):0;
+  const formLabel=formScore>120?'Risque surmenage ⚠️':formScore>100?'Charge élevée 🔥':formScore>70?'Forme optimale ✓':formScore>40?'Récupération 💤':'Faible charge';
+  const formColor=formScore>120?'var(--red)':formScore>100?'var(--amber)':formScore>70?'var(--teal)':'var(--blue)';
+
+  // Personal Records
+  const bestRun=acts.filter(a=>a.type==='Run'&&a.distance>9000).sort((a,b)=>a.moving_time/(a.distance/1000)-b.moving_time/(b.distance/1000))[0];
+  const bestRide=acts.filter(a=>a.type?.includes('Ride')&&a.distance>20000).sort((a,b)=>(b.distance/b.moving_time)-(a.distance/a.moving_time))[0];
+  const bestSwim=acts.filter(a=>a.type==='Swim'&&a.distance>500).sort((a,b)=>a.moving_time/a.distance-b.moving_time/b.distance)[0];
+  const longestRun=acts.filter(a=>a.type==='Run').sort((a,b)=>(b.distance||0)-(a.distance||0))[0];
+  const longestRide=acts.filter(a=>a.type?.includes('Ride')).sort((a,b)=>(b.distance||0)-(a.distance||0))[0];
+
+  el.innerHTML=`
+    <div>
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.8rem;">Forme du moment</div>
+      <div style="text-align:center;padding:1rem 0;">
+        <div style="font-size:48px;font-weight:300;color:${formColor};line-height:1;">${formScore}</div>
+        <div style="font-size:11px;color:${formColor};margin-top:4px;">${formLabel}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;">TSS 7j : ${recentTSS} · Moy semaine : ${Math.round(avgWeekTSS)}</div>
+        <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;margin-top:10px;overflow:hidden;">
+          <div style="height:100%;width:${Math.min(formScore,150)/1.5}%;background:${formColor};border-radius:3px;transition:width .6s;"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.8rem;">Personal Records (6 mois)</div>
+      ${[
+        ['🏃 Meilleure allure',bestRun?paceStr(bestRun):'—'],
+        ['🏃 Plus longue course',longestRun?fD(longestRun.distance)+' km':'—'],
+        ['🚴 Vitesse max moy',bestRide?((bestRide.distance/bestRide.moving_time)*3.6).toFixed(1)+' km/h':'—'],
+        ['🚴 Plus longue sortie',longestRide?fD(longestRide.distance)+' km':'—'],
+        ['🏊 Meilleure allure nage',bestSwim?paceStr(bestSwim):'—'],
+        ['📊 Séances ce mois',acts.filter(a=>{const d=new Date(a.start_date);return d>=w28;}).length+' activités'],
+      ].map(([l,v])=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <div style="color:var(--muted2);">${l}</div>
+          <div style="font-weight:500;color:var(--teal);">${v}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ===== SHARE / EXPORT =====
+let shareActData=null;
+function openShareModal(actId){
+  shareActData=S.acts.find(a=>a.id===actId)||S.acts[0];
+  if(!shareActData)return;
+  drawShareCard(shareActData);
+  document.getElementById('sharemo').classList.add('open');
+}
+
+function drawShareCard(a){
+  const canvas=document.getElementById('share-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=1080,H=1920;
+  canvas.width=W;canvas.height=H;
+
+  // Background gradient
+  const grad=ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0,'#090f0d');
+  grad.addColorStop(1,'#0f2018');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+
+  // Grid pattern
+  ctx.strokeStyle='rgba(93,202,165,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=54){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=54){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Top accent bar
+  const accentGrad=ctx.createLinearGradient(0,0,W,0);
+  accentGrad.addColorStop(0,'#1D9E75');accentGrad.addColorStop(1,'#5DCAA5');
+  ctx.fillStyle=accentGrad;ctx.fillRect(0,0,W,8);
+
+  // Logo / app name
+  ctx.font='500 52px sans-serif';ctx.fillStyle='rgba(255,255,255,.3)';
+  ctx.fillText('MON COACH',80,100);
+
+  // Sport type badge
+  const sportColors={'Run':'#5DCAA5','Ride':'#378ADD','Swim':'#9FE1CB'};
+  const sc=sportColors[a.type]||'#5DCAA5';
+  const sportFrMap={'Run':'COURSE','Ride':'VÉLO','Swim':'NATATION','TrailRun':'TRAIL'};
+  const sportName=sportFrMap[a.type]||a.type.toUpperCase();
+
+  ctx.fillStyle=sc+'33';
+  roundRect(ctx,80,130,280,64,12);ctx.fill();
+  ctx.font='700 32px sans-serif';ctx.fillStyle=sc;
+  ctx.fillText(sportName,104,174);
+
+  // Activity name
+  ctx.font='300 56px sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';
+  const name=a.name.length>28?a.name.slice(0,25)+'…':a.name;
+  ctx.fillText(name,80,280);
+
+  // Date
+  ctx.font='400 36px sans-serif';ctx.fillStyle='rgba(255,255,255,.4)';
+  ctx.fillText(new Date(a.start_date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),80,340);
+
+  // Divider
+  ctx.strokeStyle='rgba(93,202,165,.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(80,380);ctx.lineTo(W-80,380);ctx.stroke();
+
+  // Main stats grid
+  const stats=[
+    ['Distance',fD(a.distance)+' km'],
+    ['Durée',fT(a.moving_time)],
+    [a.type?.includes('Ride')?'Vitesse':'Allure',paceStr(a)],
+    ['FC moyenne',a.average_heartrate?Math.round(a.average_heartrate)+' bpm':'—'],
+    ['FC max',a.max_heartrate?Math.round(a.max_heartrate)+' bpm':'—'],
+    ['Dénivelé',a.total_elevation_gain?Math.round(a.total_elevation_gain)+'m':'—'],
+    ['Calories',a.calories?Math.round(a.calories)+' kcal':'—'],
+    ['TSS',calcTSS(a)||'—'],
+  ];
+  const cols=2,rows=4,cw=(W-160)/cols,rh=160;
+  stats.forEach(([l,v],i)=>{
+    const col=i%cols,row=Math.floor(i/cols);
+    const x=80+col*cw,y=420+row*rh;
+    ctx.fillStyle='rgba(255,255,255,.04)';
+    roundRect(ctx,x,y,cw-12,130,12);ctx.fill();
+    ctx.strokeStyle='rgba(93,202,165,.12)';ctx.lineWidth=1;
+    roundRect(ctx,x,y,cw-12,130,12);ctx.stroke();
+    ctx.font='400 28px sans-serif';ctx.fillStyle='rgba(255,255,255,.45)';
+    ctx.fillText(l,x+20,y+44);
+    ctx.font='300 52px sans-serif';ctx.fillStyle=i===0?sc:'rgba(255,255,255,.92)';
+    ctx.fillText(v,x+20,y+106);
+  });
+
+  // HR Zone bar
+  if(a.average_heartrate){
+    const z=hrZoneCustom(a.average_heartrate);
+    const zy=420+4*rh+20;
+    ctx.font='400 28px sans-serif';ctx.fillStyle='rgba(255,255,255,.45)';
+    ctx.fillText('ZONE CARDIAQUE',80,zy);
+    ctx.fillStyle=z.c+'33';
+    roundRect(ctx,80,zy+14,W-160,64,10);ctx.fill();
+    ctx.font='700 36px sans-serif';ctx.fillStyle=z.c;
+    ctx.fillText(z.n+' — '+z.lbl,100,zy+58);
+  }
+
+  // Athlete name + bottom
+  const athnameY=H-180;
+  ctx.strokeStyle='rgba(93,202,165,.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(80,athnameY);ctx.lineTo(W-80,athnameY);ctx.stroke();
+  ctx.font='500 40px sans-serif';ctx.fillStyle='rgba(255,255,255,.7)';
+  const athname=S.ath?S.ath.firstname+' '+S.ath.lastname:'Athlète';
+  ctx.fillText(athname,80,athnameY+60);
+  ctx.font='400 30px sans-serif';ctx.fillStyle='rgba(255,255,255,.3)';
+  ctx.fillText('lucdsn.github.io/mon-coach',80,athnameY+104);
+
+  // Bottom accent
+  ctx.fillStyle=accentGrad;ctx.fillRect(0,H-8,W,8);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function downloadShareCard(){
+  const canvas=document.getElementById('share-canvas');
+  const link=document.createElement('a');
+  const name=shareActData?shareActData.name.replace(/[^a-zA-Z0-9]/g,'_'):'activite';
+  link.download=`MonCoach_${name}_story.png`;
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+// Add share button to activity modal
+function addShareToModal(actId){
+  const existing=document.getElementById('share-act-btn');
+  if(existing)existing.remove();
+  const btn=document.createElement('button');
+  btn.id='share-act-btn';
+  btn.textContent='📸 Partager en story';
+  btn.style.cssText='width:100%;margin-top:.8rem;background:rgba(252,76,2,.1);border:1px solid rgba(252,76,2,.25);color:#FC7C42;font-family:DM Sans,sans-serif;font-size:13px;font-weight:500;padding:10px;border-radius:9px;cursor:pointer;transition:all .15s;';
+  btn.onclick=()=>openShareModal(actId);
+  document.getElementById('actmo-c').appendChild(btn);
+}
+
+// ===== PDF EXPORT =====
+function exportPDF(){
+  // Build printable HTML
+  const prof=S.prof;
+  const acts=S.acts;
+  const rd=prof?.raceDate;
+  const days=rd?Math.ceil((new Date(rd)-new Date())/864e5):null;
+  const runs=acts.filter(a=>a.type==='Run').reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const rides=acts.filter(a=>a.type?.includes('Ride')).reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const swims=acts.filter(a=>a.type==='Swim').reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const ath=S.ath;
+
+  const dispo=prof?.days||[0,1,2,3,4,5,6];
+  const dns=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const weeks=[
+    {n:1,theme:'Évaluation & reprise',b:'Faible'},
+    {n:2,theme:'Construction aérobie',b:'Faible'},
+    {n:3,theme:'Volume progressif',b:'Modéré'},
+    {n:4,theme:'Récupération active',b:'Faible'},
+    {n:5,theme:'Développement vitesse',b:'Modéré'},
+    {n:6,theme:'Volume maximal',b:'Élevé'},
+    {n:7,theme:'Spécificité triathlon',b:'Élevé'},
+    {n:8,theme:'Récupération',b:'Faible'},
+    {n:9,theme:'Simulations de course',b:'Peak'},
+    {n:10,theme:'Affûtage intensif',b:'Modéré'},
+    {n:11,theme:'Affûtage final',b:'Faible'},
+    {n:12,theme:'Race week 🏁',b:'Course !'},
+  ];
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+  <title>Mon Coach — Programme Half Ironman</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:Georgia,serif;color:#1a2e28;background:white;padding:2cm;}
+    h1{font-size:28px;margin-bottom:6px;color:#0F6E56;}
+    h2{font-size:18px;color:#0F6E56;margin:20px 0 10px;border-bottom:2px solid #E1F5EE;padding-bottom:6px;}
+    h3{font-size:14px;color:#1D9E75;margin:12px 0 6px;}
+    .meta{font-size:13px;color:#5f8f7e;margin-bottom:20px;}
+    .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+    .stat-box{background:#f4faf7;border:1px solid #c8e8dc;border-radius:8px;padding:12px;}
+    .stat-lbl{font-size:10px;color:#5f8f7e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+    .stat-val{font-size:20px;color:#0F6E56;font-weight:bold;}
+    .week-row{display:flex;align-items:center;padding:6px 10px;border-radius:6px;margin-bottom:4px;background:#f4faf7;border-left:3px solid #5DCAA5;}
+    .week-n{font-size:11px;color:#5f8f7e;width:70px;}
+    .week-t{font-size:13px;flex:1;}
+    .week-b{font-size:11px;color:#0F6E56;font-weight:bold;}
+    .checklist-item{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;}
+    .cb{width:12px;height:12px;border:1.5px solid #5DCAA5;border-radius:3px;flex-shrink:0;}
+    table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;}
+    th{background:#0F6E56;color:white;padding:8px;text-align:left;font-size:11px;}
+    td{padding:6px 8px;border-bottom:1px solid #E1F5EE;}
+    tr:nth-child(even) td{background:#f4faf7;}
+    @media print{body{padding:1cm;}.page-break{page-break-before:always;}}
+  </style></head><body>
+  <h1>Programme Half Ironman — Mon Coach</h1>
+  <div class="meta">
+    Athlète : <strong>${ath?ath.firstname+' '+ath.lastname:'—'}</strong> · 
+    Poids : ${prof?.weight||'—'} kg · FC max : ${prof?.hrmax||185} bpm · 
+    Objectif : ${({finisher:'Finisher',sub530:'-5h30',sub500:'-5h00',sub430:'-4h30'}[prof?.s1])||'—'}<br>
+    Date de course : ${rd?new Date(rd).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'Non définie'}
+    ${days?` · J-${days}`:''}
+  </div>
+  <div class="stats-grid">
+    <div class="stat-box"><div class="stat-lbl">Course (6 mois)</div><div class="stat-val">${runs.toFixed(0)} km</div></div>
+    <div class="stat-box"><div class="stat-lbl">Vélo (6 mois)</div><div class="stat-val">${rides.toFixed(0)} km</div></div>
+    <div class="stat-box"><div class="stat-lbl">Natation (6 mois)</div><div class="stat-val">${swims.toFixed(2)} km</div></div>
+  </div>
+  <h2>Programme 12 semaines</h2>
+  ${weeks.map(w=>`<div class="week-row"><div class="week-n">Semaine ${w.n}</div><div class="week-t">${w.theme}</div><div class="week-b">${w.b}</div></div>`).join('')}
+  <div class="page-break"></div>
+  <h2>Zones cardiaques</h2>
+  ${Object.entries(getHRZones()).map(([n,z])=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #E1F5EE;font-size:13px;"><div style="width:12px;height:12px;border-radius:50%;background:${z.c};flex-shrink:0;"></div><strong>${n}</strong> — ${z.lbl} : ${z.min}–${n==='Z5'?'max':z.max} bpm</div>`).join('')}
+  <h2>10 dernières activités</h2>
+  <table><tr><th>Date</th><th>Type</th><th>Nom</th><th>Distance</th><th>Durée</th><th>Allure/Vitesse</th><th>FC moy</th></tr>
+  ${acts.slice(0,10).map(a=>`<tr><td>${fDt(a.start_date)}</td><td>${sfr(a.type)}</td><td>${a.name}</td><td>${fD(a.distance)} km</td><td>${fT(a.moving_time)}</td><td>${paceStr(a)}</td><td>${a.average_heartrate?Math.round(a.average_heartrate)+' bpm':'—'}</td></tr>`).join('')}
+  </table>
+  <h2>Checklist Race Day</h2>
+  ${['Combinaison/maillot natation','Lunettes de natation (+ secours)','Polar Verity Sense + clip','Vélo révisé','Casque homologué','2 bidons','Gels/barres vélo','Kit réparation vélo','Chaussures course rodées','Dossard + ceinture','Crème anti-frottements','Nutrition J-1 préparée'].map(i=>`<div class="checklist-item"><div class="cb"></div>${i}</div>`).join('')}
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
 }
 
 function logout(){localStorage.clear();location.reload();}
